@@ -21,13 +21,14 @@
         /* Estilos Quill compartidos */
         .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #334155 !important; background-color: transparent; padding: 8px 0 !important; margin-bottom: 8px; }
         .ql-container.ql-snow { border: none !important; font-family: 'Inter', sans-serif; font-size: 0.95rem; }
-        .ql-editor { padding: 0 !important; min-height: 100px; }
+        /* Limitar altura del editor para evitar que empuje los botones en móviles */
+        .ql-editor { padding: 0 !important; min-height: 100px; max-height: 30vh; overflow-y: auto; }
         .ql-editor.ql-blank::before { color: #64748b; font-style: normal; left: 0; }
         .ql-snow .ql-stroke { stroke: #cbd5e1; }
         .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: #cbd5e1; }
         
         /* Ajuste específico para el editor del Modal */
-        #edit-editor-container .ql-editor { min-height: 200px; }
+        #edit-editor-container .ql-editor { min-height: 200px; max-height: 50vh; }
         
         /* Contenido de las notas */
         .nota-contenido ul { list-style-type: disc; padding-left: 1.25rem; margin-top: 0.25rem; }
@@ -37,13 +38,13 @@
         .nota-contenido p:last-child { margin-bottom: 0; }
     </style>
 </head>
-<body class="bg-[#0f1115] h-screen flex flex-col text-slate-200 overflow-hidden">
+<body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden">
 
-    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 flex items-center justify-center">
+    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl w-full max-w-sm flex flex-col gap-4">
             <h2 class="text-xl font-bold text-slate-100 text-center mb-2">Ingresar a Priel Notas</h2>
-            <input type="email" id="email" placeholder="Correo electrónico" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500">
-            <input type="password" id="password" placeholder="Contraseña" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500">
+            <input type="email" id="email" placeholder="Correo electrónico" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500 w-full">
+            <input type="password" id="password" placeholder="Contraseña" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500 w-full">
             <button onclick="login()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium p-3 rounded-lg transition-colors mt-2">Iniciar Sesión</button>
             <p id="auth-error" class="text-red-400 text-sm text-center hidden"></p>
         </div>
@@ -51,13 +52,16 @@
 
     <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
-                <h3 class="text-lg font-bold text-slate-100">Editar Nota</h3>
-                <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+            <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
+                    <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <input type="text" id="titulo-editar" placeholder="Título de la nota..." class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
-            <div class="p-5">
+            <div class="p-5 bg-[#1a1d24]">
                 <div id="edit-editor-container" class="text-slate-200"></div>
             </div>
             <div class="p-4 border-t border-slate-700 flex justify-end gap-3 bg-[#15181e]">
@@ -67,10 +71,10 @@
         </div>
     </div>
 
-    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden">
+    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto md:overflow-hidden">
         
-        <div class="bg-[#1a1d24] rounded-xl p-4 md:p-5 border border-slate-800 shadow-lg flex flex-col shrink-0">
-            <div class="flex justify-between items-center mb-2">
+        <div class="bg-[#1a1d24] rounded-xl p-4 md:p-5 border border-slate-800 shadow-lg flex flex-col shrink-0 relative">
+            <div class="flex justify-between items-center mb-4">
                 <h1 class="text-lg font-bold text-slate-100 tracking-wide flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Priel Notas
@@ -78,10 +82,13 @@
                 <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm">Cerrar Sesión</button>
             </div>
 
-            <div class="flex-1 w-full"><div id="editor-container" class="text-slate-200"></div></div>
+            <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-[#15181e] border border-slate-700 text-slate-100 p-3 rounded-t-lg outline-none focus:border-blue-500 w-full text-lg font-bold">
+            
+            <div class="flex-1 w-full bg-[#1a1d24] border border-slate-700 border-t-0 rounded-b-lg p-2">
+                <div id="editor-container" class="text-slate-200"></div>
+            </div>
 
             <div class="flex flex-col md:flex-row items-start md:items-end justify-between mt-4 pt-4 border-t border-slate-700/50 gap-4">
-                
                 <div class="flex flex-col gap-2 w-full md:w-auto">
                     <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Etiquetas</span>
                     <div class="flex flex-wrap gap-2 items-center">
@@ -103,7 +110,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-2 gap-3 shrink-0">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-2 gap-3 shrink-0 mt-4 md:mt-0">
             <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider hidden md:block">TABLEROS</h2>
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <input type="text" id="buscador" oninput="renderizarUI()" placeholder="Buscar..." class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-full md:w-48">
@@ -166,17 +173,13 @@
         let user = null;
         let idNotaEditando = null;
 
-        // Configuración para la barra de herramientas de ambos editores
         const quillConfig = {
             theme: 'snow',
-            placeholder: 'Escribe tu nota aquí...',
+            placeholder: 'Escribe el texto de tu nota...',
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{'list': 'ordered'}, {'list': 'bullet'}], ['clean'] ] }
         };
 
-        // Instancia para crear notas nuevas
         var quill = new Quill('#editor-container', quillConfig);
-        
-        // Instancia para editar notas en el modal
         var editQuill = new Quill('#edit-editor-container', quillConfig);
 
         const tableros = ['todo', 'general', 'progreso', 'cerrado'];
@@ -241,9 +244,14 @@
 
         async function agregarNota() {
             const textoPlano = quill.getText().trim();
-            if (textoPlano === '') return;
+            const tituloInput = document.getElementById('titulo-crear').value.trim();
+            
+            if (textoPlano === '' && tituloInput === '') return;
 
+            // Autogenerar título si está vacío
+            const tituloFinal = tituloInput || `Nota ${notas.length + 1}`;
             const contenidoHtml = quill.root.innerHTML;
+            
             const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
             const checkUrgente = document.getElementById('check-urgente-crear');
             let tableroInicial = 'general';
@@ -254,6 +262,7 @@
             }
 
             const nuevaNota = {
+                titulo: tituloFinal,
                 texto: contenidoHtml,
                 tablero: tableroInicial,
                 etiquetas: etiquetasSeleccionadas,
@@ -266,6 +275,7 @@
                 notas.unshift(data[0]); 
                 renderizarUI();
                 quill.setContents([]);
+                document.getElementById('titulo-crear').value = '';
                 checkUrgente.checked = false;
                 document.querySelectorAll('.etiqueta-crear').forEach(cb => cb.checked = false);
             } else {
@@ -273,7 +283,8 @@
             }
         }
 
-        async function eliminarNota(id) {
+        async function eliminarNota(id, event) {
+            event.stopPropagation(); // Evitar que abra el modal de edición
             notas = notas.filter(nota => nota.id !== id);
             renderizarUI(); 
             await supabaseClient.from('notas').delete().eq('id', id); 
@@ -294,31 +305,33 @@
             if (!nota) return;
             
             idNotaEditando = id;
-            editQuill.clipboard.dangerouslyPasteHTML(nota.texto);
+            document.getElementById('titulo-editar').value = nota.titulo || '';
+            editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
         function cerrarModalEdicion() {
             document.getElementById('modal-edicion').classList.add('hidden');
             idNotaEditando = null;
+            document.getElementById('titulo-editar').value = '';
             editQuill.setContents([]);
         }
 
         async function guardarEdicion() {
             if (!idNotaEditando) return;
-            const textoPlano = editQuill.getText().trim();
-            if (textoPlano === '') return;
-
+            
+            const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
             const nuevoHtml = editQuill.root.innerHTML;
             
             const index = notas.findIndex(n => n.id === idNotaEditando);
             if (index !== -1) {
+                notas[index].titulo = tituloEditado;
                 notas[index].texto = nuevoHtml;
                 renderizarUI(); 
                 
                 const { error } = await supabaseClient
                     .from('notas')
-                    .update({ texto: nuevoHtml })
+                    .update({ titulo: tituloEditado, texto: nuevoHtml })
                     .eq('id', idNotaEditando);
                     
                 if (error) console.error("Error al actualizar la nota:", error);
@@ -352,8 +365,9 @@
                 if (terminoBusqueda) {
                     tempDiv.innerHTML = nota.texto;
                     const textoPlano = tempDiv.innerText.toLowerCase();
+                    const tituloPlano = (nota.titulo || '').toLowerCase();
                     const matcheaEtiquetas = nota.etiquetas ? nota.etiquetas.some(e => e.toLowerCase().includes(terminoBusqueda)) : false;
-                    if (!textoPlano.includes(terminoBusqueda) && !matcheaEtiquetas) return;
+                    if (!textoPlano.includes(terminoBusqueda) && !tituloPlano.includes(terminoBusqueda) && !matcheaEtiquetas) return;
                 }
 
                 contadores[nota.tablero]++;
@@ -374,10 +388,16 @@
                     htmlEtiquetas += '</div>';
                 }
 
+                const tituloMostrar = nota.titulo || 'Nota sin título';
+
+                // Se agregó título en negrita y la clase line-clamp-2 al contenedor del texto
                 elemento.innerHTML = `
                     ${htmlEtiquetas}
-                    <div onclick="abrirModalEdicion('${nota.id}')" class="text-slate-200 text-sm break-words nota-contenido leading-relaxed cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1" title="Haz clic para editar">${nota.texto}</div>
-                    <button onclick="eliminarNota('${nota.id}')" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Eliminar nota">&times;</button>
+                    <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1" title="Haz clic para editar">
+                        <h4 class="font-bold text-slate-100 text-sm mb-1">${tituloMostrar}</h4>
+                        <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
+                    </div>
+                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Eliminar nota">&times;</button>
                 `;
 
                 const contenedor = document.getElementById(nota.tablero);
