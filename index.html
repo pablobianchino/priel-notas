@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priel Notas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .dragging { opacity: 0.4; transform: scale(0.98); }
+        .column { min-height: 150px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        /* Estilos Quill compartidos */
+        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #334155 !important; background-color: transparent; padding: 8px 0 !important; margin-bottom: 8px; }
+        .ql-container.ql-snow { border: none !important; font-family: 'Inter', sans-serif; font-size: 0.95rem; }
+        .ql-editor { padding: 0 !important; min-height: 100px; }
+        .ql-editor.ql-blank::before { color: #64748b; font-style: normal; left: 0; }
+        .ql-snow .ql-stroke { stroke: #cbd5e1; }
+        .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: #cbd5e1; }
+        
+        /* Ajuste específico para el editor del Modal */
+        #edit-editor-container .ql-editor { min-height: 200px; }
+        
+        /* Contenido de las notas */
+        .nota-contenido ul { list-style-type: disc; padding-left: 1.25rem; margin-top: 0.25rem; }
+        .nota-contenido ol { list-style-type: decimal; padding-left: 1.25rem; margin-top: 0.25rem; }
+        .nota-contenido blockquote { border-left: 3px solid #475569; padding-left: 1rem; color: #94a3b8; margin: 0.5rem 0; font-style: italic; }
+        .nota-contenido p { margin-bottom: 0.25rem; }
+        .nota-contenido p:last-child { margin-bottom: 0; }
+    </style>
+</head>
+<body class="bg-[#0f1115] h-screen flex flex-col text-slate-200 overflow-hidden">
+
+    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 flex items-center justify-center">
+        <div class="bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl w-full max-w-sm flex flex-col gap-4">
+            <h2 class="text-xl font-bold text-slate-100 text-center mb-2">Ingresar a Priel Notas</h2>
+            <input type="email" id="email" placeholder="Correo electrónico" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500">
+            <input type="password" id="password" placeholder="Contraseña" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500">
+            <button onclick="login()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium p-3 rounded-lg transition-colors mt-2">Iniciar Sesión</button>
+            <p id="auth-error" class="text-red-400 text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
+                <h3 class="text-lg font-bold text-slate-100">Editar Nota</h3>
+                <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <div id="edit-editor-container" class="text-slate-200"></div>
+            </div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-3 bg-[#15181e]">
+                <button onclick="cerrarModalEdicion()" class="px-5 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden">
+        
+        <div class="bg-[#1a1d24] rounded-xl p-4 md:p-5 border border-slate-800 shadow-lg flex flex-col shrink-0">
+            <div class="flex justify-between items-center mb-2">
+                <h1 class="text-lg font-bold text-slate-100 tracking-wide flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Priel Notas
+                </h1>
+                <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm">Cerrar Sesión</button>
+            </div>
+
+            <div class="flex-1 w-full"><div id="editor-container" class="text-slate-200"></div></div>
+
+            <div class="flex flex-col md:flex-row items-start md:items-end justify-between mt-4 pt-4 border-t border-slate-700/50 gap-4">
+                
+                <div class="flex flex-col gap-2 w-full md:w-auto">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Etiquetas</span>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Mandala"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-purple-900/50 peer-checked:text-purple-300 peer-checked:border-purple-700/50 transition-all hover:bg-slate-800">Mandala</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Show"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-blue-900/50 peer-checked:text-blue-300 peer-checked:border-blue-700/50 transition-all hover:bg-slate-800">Show</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Rutina"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-green-900/50 peer-checked:text-green-300 peer-checked:border-green-700/50 transition-all hover:bg-slate-800">Rutina</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Salud Mental"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-teal-900/50 peer-checked:text-teal-300 peer-checked:border-teal-700/50 transition-all hover:bg-slate-800">Salud Mental</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Ensamble"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-indigo-900/50 peer-checked:text-indigo-300 peer-checked:border-indigo-700/50 transition-all hover:bg-slate-800">Ensamble</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Metas Personales"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-orange-900/50 peer-checked:text-orange-300 peer-checked:border-orange-700/50 transition-all hover:bg-slate-800">Metas Personales</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Astrología"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-yellow-900/40 peer-checked:text-yellow-300 peer-checked:border-yellow-700/50 transition-all hover:bg-slate-800">Astrología</div></label>
+                        <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Otros"><div class="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-slate-700 peer-checked:text-slate-200 peer-checked:border-slate-500 transition-all hover:bg-slate-800">Otros</div></label>
+                        
+                        <div class="h-6 w-px bg-slate-700 mx-1 hidden md:block"></div>
+                        <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
+                    </div>
+                </div>
+
+                <button onclick="agregarNota()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium text-sm w-full md:w-auto shadow-md">Guardar Nota</button>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-2 gap-3 shrink-0">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider hidden md:block">TABLEROS</h2>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <input type="text" id="buscador" oninput="renderizarUI()" placeholder="Buscar..." class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-full md:w-48">
+                <select id="filtro-etiqueta" onchange="renderizarUI()" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 flex-1 md:flex-none">
+                    <option value="todas">Todas las etiquetas</option>
+                    <option value="sin-etiqueta">Sin Etiqueta</option>
+                    <option value="Mandala">Mandala</option>
+                    <option value="Show">Show</option>
+                    <option value="Rutina">Rutina</option>
+                    <option value="Salud Mental">Salud Mental</option>
+                    <option value="Ensamble">Ensamble</option>
+                    <option value="Metas Personales">Metas Personales</option>
+                    <option value="Astrología">Astrología</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-300 bg-[#1a1d24] border border-slate-700 px-3 py-1.5 rounded-lg"><input type="checkbox" id="filtro-urgente" onchange="renderizarUI()" class="w-4 h-4 accent-red-500 rounded"> Urgentes</label>
+                <button onclick="limpiarFiltros()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-x-auto pb-4 flex-1 items-start h-full scroll-smooth">
+            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('todo')">
+                    <h2 class="font-semibold text-yellow-200 text-sm select-none">To Do</h2>
+                    <span id="count-todo" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                </div>
+                <div id="todo" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+            </div>
+            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('general')">
+                    <h2 class="font-semibold text-slate-300 text-sm select-none">General</h2>
+                    <span id="count-general" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                </div>
+                <div id="general" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+            </div>
+            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('progreso')">
+                    <h2 class="font-semibold text-blue-400 text-sm select-none">En Progreso</h2>
+                    <span id="count-progreso" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                </div>
+                <div id="progreso" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+            </div>
+            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('cerrado')">
+                    <h2 class="font-semibold text-green-400 text-sm select-none">Cerrado</h2>
+                    <span id="count-cerrado" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                </div>
+                <div id="cerrado" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN SUPABASE
+        const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let notas = [];
+        let user = null;
+        let idNotaEditando = null;
+
+        // Configuración para la barra de herramientas de ambos editores
+        const quillConfig = {
+            theme: 'snow',
+            placeholder: 'Escribe tu nota aquí...',
+            modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{'list': 'ordered'}, {'list': 'bullet'}], ['clean'] ] }
+        };
+
+        // Instancia para crear notas nuevas
+        var quill = new Quill('#editor-container', quillConfig);
+        
+        // Instancia para editar notas en el modal
+        var editQuill = new Quill('#edit-editor-container', quillConfig);
+
+        const tableros = ['todo', 'general', 'progreso', 'cerrado'];
+        const coloresEtiquetas = {
+            'Mandala': 'bg-purple-900/50 text-purple-300 border border-purple-700/50',
+            'Show': 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
+            'Rutina': 'bg-green-900/50 text-green-300 border border-green-700/50',
+            'Salud Mental': 'bg-teal-900/50 text-teal-300 border border-teal-700/50',
+            'Urgente': 'bg-red-900/80 text-red-200 border border-red-600',
+            'Ensamble': 'bg-indigo-900/50 text-indigo-300 border border-indigo-700/50',
+            'Metas Personales': 'bg-orange-900/50 text-orange-300 border border-orange-700/50',
+            'Astrología': 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50',
+            'Otros': 'bg-slate-800 text-slate-300 border border-slate-600'
+        };
+
+        // AUTENTICACIÓN
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                user = session.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                cargarNotas();
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                const errEl = document.getElementById('auth-error');
+                errEl.innerText = error.message;
+                errEl.classList.remove('hidden');
+            } else {
+                user = data.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                cargarNotas();
+            }
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            user = null;
+            notas = [];
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // BASE DE DATOS CRUD
+        async function cargarNotas() {
+            const { data, error } = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
+            if (!error) {
+                notas = data;
+                renderizarUI();
+            }
+        }
+
+        async function agregarNota() {
+            const textoPlano = quill.getText().trim();
+            if (textoPlano === '') return;
+
+            const contenidoHtml = quill.root.innerHTML;
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
+            const checkUrgente = document.getElementById('check-urgente-crear');
+            let tableroInicial = 'general';
+
+            if (checkUrgente.checked) {
+                etiquetasSeleccionadas.push('Urgente');
+                tableroInicial = 'todo';
+            }
+
+            const nuevaNota = {
+                texto: contenidoHtml,
+                tablero: tableroInicial,
+                etiquetas: etiquetasSeleccionadas,
+                user_id: user.id
+            };
+
+            const { data, error } = await supabaseClient.from('notas').insert([nuevaNota]).select();
+            
+            if (!error && data) {
+                notas.unshift(data[0]); 
+                renderizarUI();
+                quill.setContents([]);
+                checkUrgente.checked = false;
+                document.querySelectorAll('.etiqueta-crear').forEach(cb => cb.checked = false);
+            } else {
+                console.error("Error al guardar la nota:", error);
+            }
+        }
+
+        async function eliminarNota(id) {
+            notas = notas.filter(nota => nota.id !== id);
+            renderizarUI(); 
+            await supabaseClient.from('notas').delete().eq('id', id); 
+        }
+
+        async function moverNota(id, nuevoTablero) {
+            const index = notas.findIndex(n => n.id === id);
+            if (index !== -1) {
+                notas[index].tablero = nuevoTablero;
+                renderizarUI(); 
+                await supabaseClient.from('notas').update({ tablero: nuevoTablero }).eq('id', id); 
+            }
+        }
+
+        // --- LÓGICA DE EDICIÓN ---
+        function abrirModalEdicion(id) {
+            const nota = notas.find(n => n.id === id);
+            if (!nota) return;
+            
+            idNotaEditando = id;
+            editQuill.clipboard.dangerouslyPasteHTML(nota.texto);
+            document.getElementById('modal-edicion').classList.remove('hidden');
+        }
+
+        function cerrarModalEdicion() {
+            document.getElementById('modal-edicion').classList.add('hidden');
+            idNotaEditando = null;
+            editQuill.setContents([]);
+        }
+
+        async function guardarEdicion() {
+            if (!idNotaEditando) return;
+            const textoPlano = editQuill.getText().trim();
+            if (textoPlano === '') return;
+
+            const nuevoHtml = editQuill.root.innerHTML;
+            
+            const index = notas.findIndex(n => n.id === idNotaEditando);
+            if (index !== -1) {
+                notas[index].texto = nuevoHtml;
+                renderizarUI(); 
+                
+                const { error } = await supabaseClient
+                    .from('notas')
+                    .update({ texto: nuevoHtml })
+                    .eq('id', idNotaEditando);
+                    
+                if (error) console.error("Error al actualizar la nota:", error);
+            }
+            
+            cerrarModalEdicion();
+        }
+
+        // RENDERIZADO Y UI
+        function limpiarFiltros() {
+            document.getElementById('filtro-etiqueta').value = 'todas';
+            document.getElementById('filtro-urgente').checked = false;
+            document.getElementById('buscador').value = '';
+            renderizarUI();
+        }
+
+        function renderizarUI() {
+            const contadores = { general: 0, todo: 0, progreso: 0, cerrado: 0 };
+            tableros.forEach(t => { const el = document.getElementById(t); if(el) el.innerHTML = ''; });
+
+            const filtroUrgente = document.getElementById('filtro-urgente').checked;
+            const filtroEtiqueta = document.getElementById('filtro-etiqueta').value;
+            const terminoBusqueda = document.getElementById('buscador').value.toLowerCase();
+            const tempDiv = document.createElement('div');
+
+            notas.forEach(nota => {
+                if (filtroUrgente && (!nota.etiquetas || !nota.etiquetas.includes('Urgente'))) return;
+                if (filtroEtiqueta === 'sin-etiqueta' && nota.etiquetas && nota.etiquetas.length > 0) return;
+                if (filtroEtiqueta !== 'todas' && filtroEtiqueta !== 'sin-etiqueta' && (!nota.etiquetas || !nota.etiquetas.includes(filtroEtiqueta))) return;
+
+                if (terminoBusqueda) {
+                    tempDiv.innerHTML = nota.texto;
+                    const textoPlano = tempDiv.innerText.toLowerCase();
+                    const matcheaEtiquetas = nota.etiquetas ? nota.etiquetas.some(e => e.toLowerCase().includes(terminoBusqueda)) : false;
+                    if (!textoPlano.includes(terminoBusqueda) && !matcheaEtiquetas) return;
+                }
+
+                contadores[nota.tablero]++;
+
+                const elemento = document.createElement('div');
+                elemento.className = 'bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
+                elemento.draggable = true;
+                elemento.id = nota.id;
+                elemento.ondragstart = arrastrar;
+
+                let htmlEtiquetas = '';
+                if (nota.etiquetas && nota.etiquetas.length > 0) {
+                    htmlEtiquetas = '<div class="flex flex-wrap gap-1.5 mb-2">';
+                    nota.etiquetas.forEach(etq => {
+                        const colorClase = coloresEtiquetas[etq] || coloresEtiquetas['Otros'];
+                        htmlEtiquetas += `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded ${colorClase}">${etq}</span>`;
+                    });
+                    htmlEtiquetas += '</div>';
+                }
+
+                elemento.innerHTML = `
+                    ${htmlEtiquetas}
+                    <div onclick="abrirModalEdicion('${nota.id}')" class="text-slate-200 text-sm break-words nota-contenido leading-relaxed cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1" title="Haz clic para editar">${nota.texto}</div>
+                    <button onclick="eliminarNota('${nota.id}')" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Eliminar nota">&times;</button>
+                `;
+
+                const contenedor = document.getElementById(nota.tablero);
+                if (contenedor) contenedor.appendChild(elemento);
+            });
+
+            Object.keys(contadores).forEach(key => {
+                const badge = document.getElementById(`count-${key}`);
+                if(badge) badge.innerText = contadores[key];
+            });
+        }
+
+        function arrastrar(event) { event.dataTransfer.setData("text", event.target.id); event.target.classList.add('dragging'); }
+        function permitirSoltar(event) { event.preventDefault(); }
+        function soltar(event) {
+            event.preventDefault();
+            const id = event.dataTransfer.getData("text");
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.classList.remove('dragging');
+                let destino = event.target;
+                while (!destino.classList.contains('column') && destino.parentElement) destino = destino.parentElement;
+                
+                if (destino.id && tableros.includes(destino.id)) {
+                    moverNota(id, destino.id);
+                }
+            }
+        }
+
+        function toggleMobile(id) {
+            if (window.innerWidth >= 768) return; 
+            const col = document.getElementById(id);
+            if (col.classList.contains('hidden')) {
+                col.classList.remove('hidden'); col.classList.add('flex');
+            } else {
+                col.classList.add('hidden'); col.classList.remove('flex');
+            }
+        }
+
+        if (window.innerWidth < 768) {
+            document.getElementById('todo').classList.remove('hidden');
+            document.getElementById('todo').classList.add('flex');
+        }
+
+        checkSession();
+    </script>
+</body>
+</html>
