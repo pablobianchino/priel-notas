@@ -35,7 +35,15 @@
 </head>
 <body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden">
 
-    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 flex items-center justify-center p-4">
+    <div id="loading-screen" class="absolute inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
+        <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <h2 class="text-sm font-bold text-slate-400 tracking-widest uppercase">Cargando Priel Notas...</h2>
+    </div>
+
+    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl w-full max-w-sm flex flex-col gap-4">
             <h2 class="text-xl font-bold text-slate-100 text-center mb-2">Ingresar a Priel Notas</h2>
             <input type="email" id="email" placeholder="Correo electrónico" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500 w-full">
@@ -56,9 +64,11 @@
                 </div>
                 <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
+            
             <div class="p-5 bg-[#1a1d24]">
                 <div id="editor-container" class="text-slate-200"></div>
             </div>
+            
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
                 <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Mandala"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-purple-900/50 peer-checked:text-purple-300 peer-checked:border-purple-700/50 transition-all hover:bg-slate-800">Mandala</div></label>
@@ -69,9 +79,11 @@
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Metas Personales"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-orange-900/50 peer-checked:text-orange-300 peer-checked:border-orange-700/50 transition-all hover:bg-slate-800">Metas Personales</div></label>
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Astrología"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-yellow-900/40 peer-checked:text-yellow-300 peer-checked:border-yellow-700/50 transition-all hover:bg-slate-800">Astrología</div></label>
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Otros"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-slate-700 peer-checked:text-slate-200 peer-checked:border-slate-500 transition-all hover:bg-slate-800">Otros</div></label>
+                    
                     <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
                     <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
                 </div>
+
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
                     <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
                     <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar</button>
@@ -221,7 +233,10 @@
                 user = session.user;
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                cargarNotas();
+                await cargarNotas();
+            } else {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
             }
         }
 
@@ -237,8 +252,9 @@
             } else {
                 user = data.user;
                 document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                cargarNotas();
+                await cargarNotas();
             }
         }
 
@@ -258,6 +274,7 @@
                 notas = data;
                 renderizarUI();
             }
+            document.getElementById('loading-screen').classList.add('hidden');
         }
 
         function abrirModalCrear() {
@@ -334,11 +351,9 @@
             document.getElementById('titulo-editar').value = nota.titulo || '';
             editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
 
-            // Limpiar etiquetas del modal de edición
             document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
             document.getElementById('check-urgente-editar').checked = false;
 
-            // Marcar las etiquetas que tiene la nota
             if (nota.etiquetas) {
                 nota.etiquetas.forEach(etq => {
                     if (etq === 'Urgente') {
@@ -367,7 +382,9 @@
             const nuevoHtml = editQuill.root.innerHTML;
             
             const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
-            if (document.getElementById('check-urgente-editar').checked) {
+            const esUrgente = document.getElementById('check-urgente-editar').checked;
+            
+            if (esUrgente) {
                 etiquetasSeleccionadas.push('Urgente');
             }
 
@@ -377,6 +394,12 @@
                 notas[index].texto = nuevoHtml;
                 notas[index].etiquetas = etiquetasSeleccionadas;
                 
+                let tableroFinal = notas[index].tablero;
+                if (esUrgente) {
+                    tableroFinal = 'todo';
+                    notas[index].tablero = tableroFinal;
+                }
+                
                 renderizarUI(); 
                 
                 const { error } = await supabaseClient
@@ -384,7 +407,8 @@
                     .update({ 
                         titulo: tituloEditado, 
                         texto: nuevoHtml, 
-                        etiquetas: etiquetasSeleccionadas 
+                        etiquetas: etiquetasSeleccionadas,
+                        tablero: tableroFinal
                     })
                     .eq('id', idNotaEditando);
                     
@@ -460,7 +484,6 @@
                 if (contenedor) contenedor.appendChild(elemento);
             });
 
-            // Ocultar o mostrar tableros según los filtros y los contadores
             Object.keys(contadores).forEach(key => {
                 const badge = document.getElementById(`count-${key}`);
                 if(badge) badge.innerText = contadores[key];
