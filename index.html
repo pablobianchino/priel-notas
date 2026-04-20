@@ -18,17 +18,14 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
-        /* Estilos Quill compartidos */
         .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #334155 !important; background-color: transparent; padding: 8px 0 !important; margin-bottom: 8px; }
         .ql-container.ql-snow { border: none !important; font-family: 'Inter', sans-serif; font-size: 0.95rem; }
         
-        /* Ajuste específico para los editores en los modales */
         #editor-container .ql-editor, #edit-editor-container .ql-editor { min-height: 200px; max-height: 40vh; overflow-y: auto; }
         .ql-editor.ql-blank::before { color: #64748b; font-style: normal; left: 0; }
         .ql-snow .ql-stroke { stroke: #cbd5e1; }
         .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: #cbd5e1; }
         
-        /* Contenido de las notas */
         .nota-contenido ul { list-style-type: disc; padding-left: 1.25rem; margin-top: 0.25rem; }
         .nota-contenido ol { list-style-type: decimal; padding-left: 1.25rem; margin-top: 0.25rem; }
         .nota-contenido blockquote { border-left: 3px solid #475569; padding-left: 1rem; color: #94a3b8; margin: 0.5rem 0; font-style: italic; }
@@ -179,7 +176,6 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN SUPABASE
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -210,7 +206,6 @@
             'Otros': 'bg-slate-800 text-slate-300 border border-slate-600'
         };
 
-        // AUTENTICACIÓN
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -248,7 +243,6 @@
             document.getElementById('password').value = '';
         }
 
-        // BASE DE DATOS CRUD
         async function cargarNotas() {
             const { data, error } = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
             if (!error) {
@@ -257,7 +251,6 @@
             }
         }
 
-        // --- LÓGICA DE CREACIÓN EN MODAL ---
         function abrirModalCrear() {
             document.getElementById('modal-crear').classList.remove('hidden');
             setTimeout(() => quill.focus(), 100);
@@ -324,7 +317,6 @@
             }
         }
 
-        // --- LÓGICA DE EDICIÓN ---
         function abrirModalEdicion(id) {
             const nota = notas.find(n => n.id === id);
             if (!nota) return;
@@ -365,7 +357,6 @@
             cerrarModalEdicion();
         }
 
-        // RENDERIZADO Y UI
         function limpiarFiltros() {
             document.getElementById('filtro-etiqueta').value = 'todas';
             document.getElementById('filtro-urgente').checked = false;
@@ -421,7 +412,9 @@
                         <h4 class="font-bold text-slate-100 text-sm mb-1">${tituloMostrar}</h4>
                         <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
                     </div>
-                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Eliminar nota">&times;</button>
+                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50" title="Eliminar nota">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
                 `;
 
                 const contenedor = document.getElementById(nota.tablero);
