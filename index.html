@@ -56,11 +56,9 @@
                 </div>
                 <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
-            
             <div class="p-5 bg-[#1a1d24]">
                 <div id="editor-container" class="text-slate-200"></div>
             </div>
-            
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
                 <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Mandala"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-purple-900/50 peer-checked:text-purple-300 peer-checked:border-purple-700/50 transition-all hover:bg-slate-800">Mandala</div></label>
@@ -71,11 +69,9 @@
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Metas Personales"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-orange-900/50 peer-checked:text-orange-300 peer-checked:border-orange-700/50 transition-all hover:bg-slate-800">Metas Personales</div></label>
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Astrología"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-yellow-900/40 peer-checked:text-yellow-300 peer-checked:border-yellow-700/50 transition-all hover:bg-slate-800">Astrología</div></label>
                     <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="Otros"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-slate-700 peer-checked:text-slate-200 peer-checked:border-slate-500 transition-all hover:bg-slate-800">Otros</div></label>
-                    
                     <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
                     <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
                 </div>
-
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
                     <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
                     <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar</button>
@@ -98,9 +94,23 @@
             <div class="p-5 bg-[#1a1d24]">
                 <div id="edit-editor-container" class="text-slate-200"></div>
             </div>
-            <div class="p-4 border-t border-slate-700 flex justify-end gap-3 bg-[#15181e]">
-                <button onclick="cerrarModalEdicion()" class="px-5 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar Cambios</button>
+            <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Mandala"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-purple-900/50 peer-checked:text-purple-300 peer-checked:border-purple-700/50 transition-all hover:bg-slate-800">Mandala</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Show"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-blue-900/50 peer-checked:text-blue-300 peer-checked:border-blue-700/50 transition-all hover:bg-slate-800">Show</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Rutina"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-green-900/50 peer-checked:text-green-300 peer-checked:border-green-700/50 transition-all hover:bg-slate-800">Rutina</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Salud Mental"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-teal-900/50 peer-checked:text-teal-300 peer-checked:border-teal-700/50 transition-all hover:bg-slate-800">Salud Mental</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Ensamble"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-indigo-900/50 peer-checked:text-indigo-300 peer-checked:border-indigo-700/50 transition-all hover:bg-slate-800">Ensamble</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Metas Personales"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-orange-900/50 peer-checked:text-orange-300 peer-checked:border-orange-700/50 transition-all hover:bg-slate-800">Metas Personales</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Astrología"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-yellow-900/40 peer-checked:text-yellow-300 peer-checked:border-yellow-700/50 transition-all hover:bg-slate-800">Astrología</div></label>
+                    <label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="Otros"><div class="px-2 py-1 rounded text-xs font-medium border border-slate-700 text-slate-400 peer-checked:bg-slate-700 peer-checked:text-slate-200 peer-checked:border-slate-500 transition-all hover:bg-slate-800">Otros</div></label>
+                    <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
+                    <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
+                    <button onclick="cerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
+                    <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar Cambios</button>
+                </div>
             </div>
         </div>
     </div>
@@ -112,7 +122,6 @@
                 <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 Priel Notas
             </h1>
-            
             <div class="flex gap-4 items-center w-full md:w-auto justify-between md:justify-end">
                 <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium order-1 md:order-none">Cerrar Sesión</button>
                 <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2 order-2 md:order-none">
@@ -144,28 +153,28 @@
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-x-auto pb-4 flex-1 items-start h-full scroll-smooth">
-            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+            <div id="wrapper-todo" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
                 <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('todo')">
                     <h2 class="font-semibold text-yellow-200 text-sm select-none">To Do</h2>
                     <span id="count-todo" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
                 </div>
                 <div id="todo" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
             </div>
-            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+            <div id="wrapper-general" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
                 <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('general')">
                     <h2 class="font-semibold text-slate-300 text-sm select-none">General</h2>
                     <span id="count-general" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
                 </div>
                 <div id="general" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
             </div>
-            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+            <div id="wrapper-progreso" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
                 <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('progreso')">
                     <h2 class="font-semibold text-blue-400 text-sm select-none">En Progreso</h2>
                     <span id="count-progreso" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
                 </div>
                 <div id="progreso" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
             </div>
-            <div class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+            <div id="wrapper-cerrado" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
                 <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('cerrado')">
                     <h2 class="font-semibold text-green-400 text-sm select-none">Cerrado</h2>
                     <span id="count-cerrado" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
@@ -324,6 +333,23 @@
             idNotaEditando = id;
             document.getElementById('titulo-editar').value = nota.titulo || '';
             editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
+
+            // Limpiar etiquetas del modal de edición
+            document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
+            document.getElementById('check-urgente-editar').checked = false;
+
+            // Marcar las etiquetas que tiene la nota
+            if (nota.etiquetas) {
+                nota.etiquetas.forEach(etq => {
+                    if (etq === 'Urgente') {
+                        document.getElementById('check-urgente-editar').checked = true;
+                    } else {
+                        const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`);
+                        if (cb) cb.checked = true;
+                    }
+                });
+            }
+
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
@@ -340,15 +366,26 @@
             const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
             const nuevoHtml = editQuill.root.innerHTML;
             
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (document.getElementById('check-urgente-editar').checked) {
+                etiquetasSeleccionadas.push('Urgente');
+            }
+
             const index = notas.findIndex(n => n.id === idNotaEditando);
             if (index !== -1) {
                 notas[index].titulo = tituloEditado;
                 notas[index].texto = nuevoHtml;
+                notas[index].etiquetas = etiquetasSeleccionadas;
+                
                 renderizarUI(); 
                 
                 const { error } = await supabaseClient
                     .from('notas')
-                    .update({ titulo: tituloEditado, texto: nuevoHtml })
+                    .update({ 
+                        titulo: tituloEditado, 
+                        texto: nuevoHtml, 
+                        etiquetas: etiquetasSeleccionadas 
+                    })
                     .eq('id', idNotaEditando);
                     
                 if (error) console.error("Error al actualizar la nota:", error);
@@ -372,6 +409,8 @@
             const filtroEtiqueta = document.getElementById('filtro-etiqueta').value;
             const terminoBusqueda = document.getElementById('buscador').value.toLowerCase();
             const tempDiv = document.createElement('div');
+            
+            const hayFiltrosActivos = filtroUrgente || filtroEtiqueta !== 'todas' || terminoBusqueda !== '';
 
             notas.forEach(nota => {
                 if (filtroUrgente && (!nota.etiquetas || !nota.etiquetas.includes('Urgente'))) return;
@@ -421,9 +460,19 @@
                 if (contenedor) contenedor.appendChild(elemento);
             });
 
+            // Ocultar o mostrar tableros según los filtros y los contadores
             Object.keys(contadores).forEach(key => {
                 const badge = document.getElementById(`count-${key}`);
                 if(badge) badge.innerText = contadores[key];
+                
+                const wrapper = document.getElementById(`wrapper-${key}`);
+                if (wrapper) {
+                    if (hayFiltrosActivos && contadores[key] === 0) {
+                        wrapper.style.display = 'none';
+                    } else {
+                        wrapper.style.display = '';
+                    }
+                }
             });
         }
 
