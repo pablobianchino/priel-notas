@@ -66,8 +66,7 @@
                     <input type="text" id="nueva-etiqueta-nombre" placeholder="Nombre nueva etiqueta..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
                     <button onclick="crearEtiquetaBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
                 </div>
-                <div id="lista-gestor-etiquetas" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                    </div>
+                <div id="lista-gestor-etiquetas" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
         </div>
     </div>
@@ -89,9 +88,7 @@
             </div>
             
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
-                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-crear">
-                    </div>
-
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-crear"></div>
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
                     <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
                     <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar</button>
@@ -105,9 +102,16 @@
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
-                    <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <select id="tablero-editar" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500">
+                            <option value="todo">To Do</option>
+                            <option value="general">General</option>
+                            <option value="cerrado">Cerrado</option>
+                        </select>
+                        <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <input type="text" id="titulo-editar" placeholder="Título de la nota..." class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
@@ -115,8 +119,7 @@
                 <div id="edit-editor-container" class="text-slate-200"></div>
             </div>
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
-                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-editar">
-                    </div>
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-editar"></div>
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
                     <button onclick="cerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
                     <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar Cambios</button>
@@ -125,7 +128,7 @@
         </div>
     </div>
 
-    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto md:overflow-hidden">
+    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
         
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
             <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
@@ -149,14 +152,13 @@
             <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider hidden md:block">TABLEROS</h2>
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <input type="text" id="buscador" oninput="renderizarUI()" placeholder="Buscar..." class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-full md:w-48">
-                <select id="filtro-etiqueta" onchange="renderizarUI()" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 flex-1 md:flex-none">
-                    </select>
+                <select id="filtro-etiqueta" onchange="renderizarUI()" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 flex-1 md:flex-none"></select>
                 <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-300 bg-[#1a1d24] border border-slate-700 px-3 py-1.5 rounded-lg"><input type="checkbox" id="filtro-urgente" onchange="renderizarUI()" class="w-4 h-4 accent-red-500 rounded"> Urgentes</label>
                 <button onclick="limpiarFiltros()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium">Limpiar</button>
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-x-auto pb-4 flex-1 items-start h-full scroll-smooth">
+        <div class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto">
             <div id="wrapper-todo" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
                 <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('todo')">
                     <h2 class="font-semibold text-yellow-200 text-sm select-none">To Do</h2>
@@ -201,7 +203,6 @@
         var editQuill = new Quill('#edit-editor-container', quillConfig);
 
         const tableros = ['todo', 'general', 'cerrado'];
-        
         const paletas = [
             'bg-purple-900/50 text-purple-300 border-purple-700/50',
             'bg-blue-900/50 text-blue-300 border-blue-700/50',
@@ -256,11 +257,9 @@
         }
 
         async function inicializarDatos() {
-            // 1. Cargar etiquetas
             const resEtq = await supabaseClient.from('etiquetas').select('*');
             if (!resEtq.error) {
                 etiquetasBD = resEtq.data;
-                // Generar etiquetas iniciales si es usuario nuevo para no perder esquema
                 if (etiquetasBD.length === 0) {
                     const iniciales = [
                         { nombre: 'Mandala', color: paletas[0], user_id: user.id },
@@ -279,19 +278,15 @@
             }
             renderizarEtiquetasDOM();
 
-            // 2. Cargar notas
             const resNotas = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
             if (!resNotas.error) {
                 notas = resNotas.data;
                 renderizarUI();
             }
-            
             document.getElementById('loading-screen').classList.add('hidden');
         }
 
-        // --- GESTIÓN DE ETIQUETAS ---
         function renderizarEtiquetasDOM() {
-            // 1. Filtro Buscador
             const select = document.getElementById('filtro-etiqueta');
             const valorActual = select.value;
             let opcionesHTML = `<option value="todas">Todas las etiquetas</option><option value="sin-etiqueta">Sin Etiqueta</option>`;
@@ -299,7 +294,6 @@
             select.innerHTML = opcionesHTML;
             if (etiquetasBD.some(e => e.nombre === valorActual) || valorActual === 'todas' || valorActual === 'sin-etiqueta') select.value = valorActual;
 
-            // 2. Modales Crear y Editar (Chips)
             const htmlEspeciales = `
                 <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
                 <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-[ID]" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
@@ -315,13 +309,11 @@
             });
 
             document.getElementById('contenedor-etiquetas-crear').innerHTML = htmlCrear + htmlEspeciales.replaceAll('[ID]', 'crear');
-            // En editar no necesitamos el boton de "A To Do", solo urgente
             document.getElementById('contenedor-etiquetas-editar').innerHTML = htmlEditar + `
                 <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
                 <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
             `;
 
-            // 3. Modal Gestor
             const listaGestor = document.getElementById('lista-gestor-etiquetas');
             listaGestor.innerHTML = etiquetasBD.map(e => `
                 <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
@@ -351,7 +343,7 @@
                 etiquetasBD.push(data[0]);
                 input.value = '';
                 renderizarEtiquetasDOM();
-                renderizarUI(); // Refrescar tarjetas
+                renderizarUI(); 
             }
         }
 
@@ -365,14 +357,12 @@
                 const i = etiquetasBD.findIndex(e => e.id === id);
                 if (i > -1) etiquetasBD[i].nombre = limpio;
 
-                // Modificar todas las notas afectadas
                 const afectadas = notas.filter(n => n.etiquetas && n.etiquetas.includes(nombreAnterior));
                 for (let nota of afectadas) {
                     nota.etiquetas = nota.etiquetas.map(e => e === nombreAnterior ? limpio : e);
                     await supabaseClient.from('notas').update({ etiquetas: nota.etiquetas }).eq('id', nota.id);
                 }
                 
-                // Actualizar filtro si estaba seleccionado
                 const filtroVal = document.getElementById('filtro-etiqueta').value;
                 if(filtroVal === nombreAnterior) document.getElementById('filtro-etiqueta').value = limpio;
 
@@ -403,7 +393,6 @@
             }
         }
 
-        // --- MANEJO DE NOTAS ---
         function abrirModalCrear() {
             document.getElementById('modal-crear').classList.remove('hidden');
             setTimeout(() => quill.focus(), 100);
@@ -473,6 +462,7 @@
             
             idNotaEditando = id;
             document.getElementById('titulo-editar').value = nota.titulo || '';
+            document.getElementById('tablero-editar').value = nota.tablero || 'general';
             editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
 
             document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
@@ -513,11 +503,11 @@
                 notas[index].texto = nuevoHtml;
                 notas[index].etiquetas = etiquetasSeleccionadas;
                 
-                let tableroFinal = notas[index].tablero;
+                let tableroFinal = document.getElementById('tablero-editar').value;
                 if (esUrgente) {
                     tableroFinal = 'todo';
-                    notas[index].tablero = tableroFinal;
                 }
+                notas[index].tablero = tableroFinal;
                 
                 renderizarUI(); 
                 
@@ -531,7 +521,6 @@
             cerrarModalEdicion();
         }
 
-        // --- RENDERIZADO PRINCIPAL ---
         function limpiarFiltros() {
             document.getElementById('filtro-etiqueta').value = 'todas';
             document.getElementById('filtro-urgente').checked = false;
@@ -551,7 +540,6 @@
             const hayFiltrosActivos = filtroUrgente || filtroEtiqueta !== 'todas' || terminoBusqueda !== '';
 
             notas.forEach(nota => {
-                // Ignore notes with 'progreso' if they somehow load before the backend update
                 if(nota.tablero === 'progreso') nota.tablero = 'general';
 
                 if (filtroUrgente && (!nota.etiquetas || !nota.etiquetas.includes('Urgente'))) return;
@@ -617,6 +605,26 @@
                 }
             });
         }
+
+        // Auto-scroll en dispositivos moviles al arrastrar
+        let scrollInterval;
+        document.addEventListener('dragover', (e) => {
+            const threshold = 100;
+            const step = 15;
+            const mainApp = document.getElementById('main-app');
+            if (!mainApp) return;
+
+            clearInterval(scrollInterval);
+
+            if (e.clientY < threshold) {
+                scrollInterval = setInterval(() => mainApp.scrollBy(0, -step), 20);
+            } else if (window.innerHeight - e.clientY < threshold) {
+                scrollInterval = setInterval(() => mainApp.scrollBy(0, step), 20);
+            }
+        });
+
+        document.addEventListener('dragend', () => clearInterval(scrollInterval));
+        document.addEventListener('drop', () => clearInterval(scrollInterval));
 
         function arrastrar(event) { event.dataTransfer.setData("text", event.target.id); event.target.classList.add('dragging'); }
         function permitirSoltar(event) { event.preventDefault(); }
