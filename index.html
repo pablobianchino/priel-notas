@@ -13,7 +13,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .dragging { opacity: 0.4; transform: scale(0.98); }
-        .column { min-height: 150px; }
+        .column { min-height: 150px; position: relative; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -235,6 +235,11 @@
                 history.back();
             }
         });
+
+        // INDICADOR VISUAL PARA ARRASTRAR
+        const dropIndicator = document.createElement('div');
+        dropIndicator.id = 'drop-indicator';
+        dropIndicator.className = 'h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] pointer-events-none hidden transition-all duration-75';
 
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -648,10 +653,16 @@
                 scrollInterval = setInterval(() => mainApp.scrollBy(0, step), 20);
             }
         });
-        document.addEventListener('dragend', () => clearInterval(scrollInterval));
-        document.addEventListener('drop', () => clearInterval(scrollInterval));
 
-        // DRAG AND DROP - LÓGICA DE REORDENAMIENTO
+        // LIMPIEZA DEL INDICADOR AL TERMINAR DE ARRASTRAR
+        document.addEventListener('dragend', (e) => {
+            clearInterval(scrollInterval);
+            if (e.target && e.target.classList) e.target.classList.remove('dragging');
+            dropIndicator.classList.add('hidden');
+            if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
+        });
+
+        // DRAG AND DROP - LÓGICA DE REORDENAMIENTO CON INDICADOR VISUAL
         function arrastrar(event) { 
             event.dataTransfer.setData("text", event.target.id); 
             event.target.classList.add('dragging'); 
@@ -659,6 +670,26 @@
         
         function permitirSoltar(event) { 
             event.preventDefault(); 
+            const destino = event.target;
+            const columnaDestino = destino.closest('.column');
+            const elementoArrastrado = document.querySelector('.dragging');
+
+            if (!columnaDestino || !elementoArrastrado) return;
+
+            dropIndicator.classList.remove('hidden');
+            const notaDestino = destino.closest('.nota-item');
+
+            if (notaDestino && notaDestino !== elementoArrastrado) {
+                const rect = notaDestino.getBoundingClientRect();
+                const offset = event.clientY - rect.top;
+                if (offset > rect.height / 2) {
+                    notaDestino.parentNode.insertBefore(dropIndicator, notaDestino.nextSibling);
+                } else {
+                    notaDestino.parentNode.insertBefore(dropIndicator, notaDestino);
+                }
+            } else if (columnaDestino && !notaDestino && event.target === columnaDestino) {
+                 columnaDestino.appendChild(dropIndicator);
+            }
         }
         
         function soltar(event) {
@@ -668,26 +699,14 @@
             if (!elementoArrastrado) return;
             
             elementoArrastrado.classList.remove('dragging');
-            let destino = event.target;
             
-            // Buscar si lo soltamos sobre otra nota o sobre una columna vacía
-            let notaDestino = destino.closest('.nota-item');
-            let columnaDestino = destino.closest('.column');
-
-            if (notaDestino && notaDestino !== elementoArrastrado) {
-                // Calcular si insertar antes o después de la nota destino
-                const rect = notaDestino.getBoundingClientRect();
-                const offset = event.clientY - rect.top;
-                if (offset > rect.height / 2) {
-                    notaDestino.parentNode.insertBefore(elementoArrastrado, notaDestino.nextSibling);
-                } else {
-                    notaDestino.parentNode.insertBefore(elementoArrastrado, notaDestino);
-                }
-                actualizarOrdenLocalYBD(notaDestino.parentNode.id);
-            } else if (columnaDestino && !notaDestino) {
-                // Se soltó en un espacio vacío de la columna
-                columnaDestino.appendChild(elementoArrastrado);
-                actualizarOrdenLocalYBD(columnaDestino.id);
+            // Insertar la nota exactamente donde quedó el indicador visual
+            if (dropIndicator.parentNode) {
+                const columnaDestino = dropIndicator.closest('.column');
+                dropIndicator.parentNode.insertBefore(elementoArrastrado, dropIndicator);
+                dropIndicator.classList.add('hidden');
+                dropIndicator.remove();
+                if (columnaDestino) actualizarOrdenLocalYBD(columnaDestino.id);
             }
         }
 
@@ -703,14 +722,13 @@
                 if (nota && (nota.tablero !== tableroId || nota.orden !== index)) {
                     nota.tablero = tableroId;
                     nota.orden = index;
-                    // Enviar actualización en segundo plano
                     promesas.push(
                         supabaseClient.from('notas').update({ tablero: tableroId, orden: index }).eq('id', nota.id)
                     );
                 }
             });
             
-            renderizarUI(); // Refrescar contadores y badges visuales
+            renderizarUI(); 
             if(promesas.length > 0) await Promise.all(promesas);
         }
 
