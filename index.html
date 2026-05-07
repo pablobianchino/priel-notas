@@ -33,7 +33,11 @@
         .nota-contenido p:last-child { margin-bottom: 0; }
     </style>
 </head>
-<body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden">
+<body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden relative">
+
+    <div id="toast-back" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-[200]">
+        Presiona atrás de nuevo para salir
+    </div>
 
     <div id="loading-screen" class="absolute inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
         <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -214,6 +218,24 @@
             'bg-pink-900/50 text-pink-300 border-pink-700/50'
         ];
 
+        // LÓGICA DE DOBLE BOTÓN ATRÁS (MÓVIL)
+        let backPressed = false;
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function(event) {
+            if (!backPressed) {
+                backPressed = true;
+                history.pushState(null, null, location.href);
+                const toast = document.getElementById('toast-back');
+                toast.classList.remove('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                    backPressed = false;
+                }, 2000);
+            } else {
+                history.back();
+            }
+        });
+
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -278,7 +300,7 @@
             }
             renderizarEtiquetasDOM();
 
-            const resNotas = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
+            const resNotas = await supabaseClient.from('notas').select('*');
             if (!resNotas.error) {
                 notas = resNotas.data;
                 renderizarUI();
@@ -429,12 +451,13 @@
                 texto: contenidoHtml,
                 tablero: tableroInicial,
                 etiquetas: etiquetasSeleccionadas,
+                orden: 0,
                 user_id: user.id
             };
 
             const { data, error } = await supabaseClient.from('notas').insert([nuevaNota]).select();
             if (!error && data) {
-                notas.unshift(data[0]); 
+                notas.push(data[0]); 
                 renderizarUI();
                 cerrarModalCrear();
             }
@@ -445,15 +468,6 @@
             notas = notas.filter(nota => nota.id !== id);
             renderizarUI(); 
             await supabaseClient.from('notas').delete().eq('id', id); 
-        }
-
-        async function moverNota(id, nuevoTablero) {
-            const index = notas.findIndex(n => n.id === id);
-            if (index !== -1) {
-                notas[index].tablero = nuevoTablero;
-                renderizarUI(); 
-                await supabaseClient.from('notas').update({ tablero: nuevoTablero }).eq('id', id); 
-            }
         }
 
         function abrirModalEdicion(id) {
@@ -507,6 +521,8 @@
                 if (esUrgente) {
                     tableroFinal = 'todo';
                 }
+                
+                const cambioTablero = notas[index].tablero !== tableroFinal;
                 notas[index].tablero = tableroFinal;
                 
                 renderizarUI(); 
@@ -517,6 +533,8 @@
                     etiquetas: etiquetasSeleccionadas,
                     tablero: tableroFinal
                 }).eq('id', idNotaEditando);
+
+                if(cambioTablero) actualizarOrdenLocalYBD(tableroFinal);
             }
             cerrarModalEdicion();
         }
@@ -539,6 +557,14 @@
             
             const hayFiltrosActivos = filtroUrgente || filtroEtiqueta !== 'todas' || terminoBusqueda !== '';
 
+            // ORDENAR: Primero por 'orden' ascendente, si son iguales por 'created_at' descendente
+            notas.sort((a, b) => {
+                const ordA = a.orden || 0;
+                const ordB = b.orden || 0;
+                if (ordA !== ordB) return ordA - ordB;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
             notas.forEach(nota => {
                 if(nota.tablero === 'progreso') nota.tablero = 'general';
 
@@ -557,7 +583,7 @@
                 if(contadores[nota.tablero] !== undefined) contadores[nota.tablero]++;
 
                 const elemento = document.createElement('div');
-                elemento.className = 'bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
+                elemento.className = 'nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
                 elemento.draggable = true;
                 elemento.id = nota.id;
                 elemento.ondragstart = arrastrar;
@@ -606,7 +632,7 @@
             });
         }
 
-        // Auto-scroll en dispositivos moviles al arrastrar
+        // AUTO-SCROLL
         let scrollInterval;
         document.addEventListener('dragover', (e) => {
             const threshold = 100;
@@ -622,23 +648,70 @@
                 scrollInterval = setInterval(() => mainApp.scrollBy(0, step), 20);
             }
         });
-
         document.addEventListener('dragend', () => clearInterval(scrollInterval));
         document.addEventListener('drop', () => clearInterval(scrollInterval));
 
-        function arrastrar(event) { event.dataTransfer.setData("text", event.target.id); event.target.classList.add('dragging'); }
-        function permitirSoltar(event) { event.preventDefault(); }
+        // DRAG AND DROP - LÓGICA DE REORDENAMIENTO
+        function arrastrar(event) { 
+            event.dataTransfer.setData("text", event.target.id); 
+            event.target.classList.add('dragging'); 
+        }
+        
+        function permitirSoltar(event) { 
+            event.preventDefault(); 
+        }
+        
         function soltar(event) {
             event.preventDefault();
             const id = event.dataTransfer.getData("text");
-            const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.classList.remove('dragging');
-                let destino = event.target;
-                while (!destino.classList.contains('column') && destino.parentElement) destino = destino.parentElement;
-                
-                if (destino.id && tableros.includes(destino.id)) moverNota(id, destino.id);
+            const elementoArrastrado = document.getElementById(id);
+            if (!elementoArrastrado) return;
+            
+            elementoArrastrado.classList.remove('dragging');
+            let destino = event.target;
+            
+            // Buscar si lo soltamos sobre otra nota o sobre una columna vacía
+            let notaDestino = destino.closest('.nota-item');
+            let columnaDestino = destino.closest('.column');
+
+            if (notaDestino && notaDestino !== elementoArrastrado) {
+                // Calcular si insertar antes o después de la nota destino
+                const rect = notaDestino.getBoundingClientRect();
+                const offset = event.clientY - rect.top;
+                if (offset > rect.height / 2) {
+                    notaDestino.parentNode.insertBefore(elementoArrastrado, notaDestino.nextSibling);
+                } else {
+                    notaDestino.parentNode.insertBefore(elementoArrastrado, notaDestino);
+                }
+                actualizarOrdenLocalYBD(notaDestino.parentNode.id);
+            } else if (columnaDestino && !notaDestino) {
+                // Se soltó en un espacio vacío de la columna
+                columnaDestino.appendChild(elementoArrastrado);
+                actualizarOrdenLocalYBD(columnaDestino.id);
             }
+        }
+
+        async function actualizarOrdenLocalYBD(tableroId) {
+            const columna = document.getElementById(tableroId);
+            if(!columna) return;
+            
+            const items = Array.from(columna.querySelectorAll('.nota-item'));
+            let promesas = [];
+            
+            items.forEach((item, index) => {
+                const nota = notas.find(n => n.id === item.id);
+                if (nota && (nota.tablero !== tableroId || nota.orden !== index)) {
+                    nota.tablero = tableroId;
+                    nota.orden = index;
+                    // Enviar actualización en segundo plano
+                    promesas.push(
+                        supabaseClient.from('notas').update({ tablero: tableroId, orden: index }).eq('id', nota.id)
+                    );
+                }
+            });
+            
+            renderizarUI(); // Refrescar contadores y badges visuales
+            if(promesas.length > 0) await Promise.all(promesas);
         }
 
         function toggleMobile(id) {
