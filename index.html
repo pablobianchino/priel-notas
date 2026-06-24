@@ -75,6 +75,24 @@
         </div>
     </div>
 
+    <div id="modal-gestor-tableros" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Tableros</h3>
+                <button onclick="cerrarGestorTableros()" class="text-slate-400 hover:text-red-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 bg-[#1a1d24] flex flex-col gap-4">
+                <div class="flex gap-2">
+                    <input type="text" id="nuevo-tablero-nombre" placeholder="Nombre de tablero..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
+                    <button onclick="crearTableroBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
+                </div>
+                <div id="lista-gestor-tableros" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-crear" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -86,11 +104,7 @@
                 </div>
                 <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
-            
-            <div class="p-5 bg-[#1a1d24]">
-                <div id="editor-container" class="text-slate-200"></div>
-            </div>
-            
+            <div class="p-5 bg-[#1a1d24]"><div id="editor-container" class="text-slate-200"></div></div>
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
                 <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-crear"></div>
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
@@ -107,11 +121,7 @@
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
                     <div class="flex items-center gap-3">
-                        <select id="tablero-editar" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500">
-                            <option value="todo">To Do</option>
-                            <option value="general">General</option>
-                            <option value="cerrado">Cerrado</option>
-                        </select>
+                        <select id="tablero-editar" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500"></select>
                         <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
@@ -119,9 +129,7 @@
                 </div>
                 <input type="text" id="titulo-editar" placeholder="Título de la nota..." class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
-            <div class="p-5 bg-[#1a1d24]">
-                <div id="edit-editor-container" class="text-slate-200"></div>
-            </div>
+            <div class="p-5 bg-[#1a1d24]"><div id="edit-editor-container" class="text-slate-200"></div></div>
             <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
                 <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-editar"></div>
                 <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
@@ -133,7 +141,6 @@
     </div>
 
     <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
-        
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
             <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
                 <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -141,12 +148,13 @@
             </h1>
             <div class="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end flex-wrap">
                 <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium">Cerrar Sesión</button>
+                <button onclick="abrirGestorTableros()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
+                    Tableros
+                </button>
                 <button onclick="abrirGestorEtiquetas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
                     Etiquetas
                 </button>
                 <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Nueva Nota
                 </button>
             </div>
@@ -162,29 +170,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto">
-            <div id="wrapper-todo" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
-                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('todo')">
-                    <h2 class="font-semibold text-yellow-200 text-sm select-none">To Do</h2>
-                    <span id="count-todo" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
-                </div>
-                <div id="todo" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
-            </div>
-            <div id="wrapper-general" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
-                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('general')">
-                    <h2 class="font-semibold text-slate-300 text-sm select-none">General</h2>
-                    <span id="count-general" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
-                </div>
-                <div id="general" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
-            </div>
-            <div id="wrapper-cerrado" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
-                <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('cerrado')">
-                    <h2 class="font-semibold text-green-400 text-sm select-none">Cerrado</h2>
-                    <span id="count-cerrado" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
-                </div>
-                <div id="cerrado" class="column hidden md:flex flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
-            </div>
-        </div>
+        <div id="tableros-container" class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto"></div>
     </div>
 
     <script>
@@ -194,6 +180,7 @@
 
         let notas = [];
         let etiquetasBD = [];
+        let tablerosBD = [];
         let user = null;
         let idNotaEditando = null;
 
@@ -202,11 +189,9 @@
             placeholder: 'Escribe el texto de tu nota...',
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{'list': 'ordered'}, {'list': 'bullet'}], ['clean'] ] }
         };
-
         var quill = new Quill('#editor-container', quillConfig);
         var editQuill = new Quill('#edit-editor-container', quillConfig);
 
-        const tableros = ['todo', 'general', 'cerrado'];
         const paletas = [
             'bg-purple-900/50 text-purple-300 border-purple-700/50',
             'bg-blue-900/50 text-blue-300 border-blue-700/50',
@@ -218,7 +203,6 @@
             'bg-pink-900/50 text-pink-300 border-pink-700/50'
         ];
 
-        // LÓGICA DE DOBLE BOTÓN ATRÁS (MÓVIL)
         let backPressed = false;
         history.pushState(null, null, location.href);
         window.addEventListener('popstate', function(event) {
@@ -227,16 +211,10 @@
                 history.pushState(null, null, location.href);
                 const toast = document.getElementById('toast-back');
                 toast.classList.remove('opacity-0');
-                setTimeout(() => {
-                    toast.classList.add('opacity-0');
-                    backPressed = false;
-                }, 2000);
-            } else {
-                history.back();
-            }
+                setTimeout(() => { toast.classList.add('opacity-0'); backPressed = false; }, 2000);
+            } else { history.back(); }
         });
 
-        // INDICADOR VISUAL PARA ARRASTRAR
         const dropIndicator = document.createElement('div');
         dropIndicator.id = 'drop-indicator';
         dropIndicator.className = 'h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] pointer-events-none hidden transition-all duration-75';
@@ -258,7 +236,6 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            
             if (error) {
                 const errEl = document.getElementById('auth-error');
                 errEl.innerText = error.message;
@@ -274,9 +251,7 @@
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            user = null;
-            notas = [];
-            etiquetasBD = [];
+            user = null; notas = []; etiquetasBD = []; tablerosBD = [];
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('email').value = '';
@@ -284,6 +259,24 @@
         }
 
         async function inicializarDatos() {
+            // Cargar Tableros
+            const resTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
+            if (!resTab.error) {
+                tablerosBD = resTab.data;
+                if (tablerosBD.length === 0) {
+                    const iniciales = [
+                        { nombre: 'todo', orden: 0, user_id: user.id },
+                        { nombre: 'general', orden: 1, user_id: user.id },
+                        { nombre: 'cerrado', orden: 2, user_id: user.id }
+                    ];
+                    await supabaseClient.from('tableros').insert(iniciales);
+                    const refreshTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
+                    tablerosBD = refreshTab.data;
+                }
+            }
+            renderizarMenuTableros();
+
+            // Cargar Etiquetas
             const resEtq = await supabaseClient.from('etiquetas').select('*');
             if (!resEtq.error) {
                 etiquetasBD = resEtq.data;
@@ -291,12 +284,7 @@
                     const iniciales = [
                         { nombre: 'Mandala', color: paletas[0], user_id: user.id },
                         { nombre: 'Show', color: paletas[1], user_id: user.id },
-                        { nombre: 'Rutina', color: paletas[2], user_id: user.id },
-                        { nombre: 'Salud Mental', color: paletas[3], user_id: user.id },
-                        { nombre: 'Ensamble', color: paletas[4], user_id: user.id },
-                        { nombre: 'Metas Personales', color: paletas[5], user_id: user.id },
-                        { nombre: 'Astrología', color: paletas[6], user_id: user.id },
-                        { nombre: 'Otros', color: 'bg-slate-700 text-slate-200 border-slate-500', user_id: user.id }
+                        { nombre: 'Rutina', color: paletas[2], user_id: user.id }
                     ];
                     await supabaseClient.from('etiquetas').insert(iniciales);
                     const refresh = await supabaseClient.from('etiquetas').select('*');
@@ -306,13 +294,85 @@
             renderizarEtiquetasDOM();
 
             const resNotas = await supabaseClient.from('notas').select('*');
-            if (!resNotas.error) {
-                notas = resNotas.data;
-                renderizarUI();
-            }
+            if (!resNotas.error) { notas = resNotas.data; renderizarUI(); }
             document.getElementById('loading-screen').classList.add('hidden');
         }
 
+        // --- GESTIÓN TABLEROS ---
+        function abrirGestorTableros() { document.getElementById('modal-gestor-tableros').classList.remove('hidden'); }
+        function cerrarGestorTableros() { document.getElementById('modal-gestor-tableros').classList.add('hidden'); }
+
+        function renderizarMenuTableros() {
+            const lista = document.getElementById('lista-gestor-tableros');
+            lista.innerHTML = tablerosBD.map(t => `
+                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
+                    <span class="text-sm font-medium text-slate-300 px-2 uppercase tracking-wide">${t.nombre}</span>
+                    <div class="flex gap-2">
+                        <button onclick="editarTableroBD('${t.id}', '${t.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
+                        <button onclick="eliminarTableroBD('${t.id}', '${t.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const selectEditar = document.getElementById('tablero-editar');
+            if(selectEditar) selectEditar.innerHTML = tablerosBD.map(t => `<option value="${t.nombre}">${t.nombre.toUpperCase()}</option>`).join('');
+        }
+
+        async function crearTableroBD() {
+            const input = document.getElementById('nuevo-tablero-nombre');
+            const nombre = input.value.trim().toLowerCase();
+            if (!nombre || tablerosBD.some(t => t.nombre === nombre)) return;
+
+            const nuevo = { nombre, orden: tablerosBD.length, user_id: user.id };
+            const { data, error } = await supabaseClient.from('tableros').insert([nuevo]).select();
+            if (!error && data) {
+                tablerosBD.push(data[0]);
+                input.value = '';
+                renderizarMenuTableros();
+                renderizarUI();
+            }
+        }
+
+        async function editarTableroBD(id, nombreAnterior) {
+            const nuevo = prompt("Nuevo nombre del tablero:", nombreAnterior);
+            if (!nuevo || nuevo.trim() === '' || nuevo.toLowerCase() === nombreAnterior) return;
+            const limpio = nuevo.trim().toLowerCase();
+
+            const { error } = await supabaseClient.from('tableros').update({ nombre: limpio }).eq('id', id);
+            if (!error) {
+                const idx = tablerosBD.findIndex(t => t.id === id);
+                if (idx > -1) tablerosBD[idx].nombre = limpio;
+
+                const afectadas = notas.filter(n => n.tablero === nombreAnterior);
+                for (let nota of afectadas) {
+                    nota.tablero = limpio;
+                    await supabaseClient.from('notas').update({ tablero: limpio }).eq('id', nota.id);
+                }
+                renderizarMenuTableros();
+                renderizarUI();
+            }
+        }
+
+        async function eliminarTableroBD(id, nombre) {
+            if (tablerosBD.length <= 1) { alert("Debe quedar al menos un tablero."); return; }
+            if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al primer tablero disponible.`)) return;
+
+            const { error } = await supabaseClient.from('tableros').delete().eq('id', id);
+            if (!error) {
+                tablerosBD = tablerosBD.filter(t => t.id !== id);
+                const tableroReemplazo = tablerosBD[0].nombre;
+
+                const afectadas = notas.filter(n => n.tablero === nombre);
+                for (let nota of afectadas) {
+                    nota.tablero = tableroReemplazo;
+                    await supabaseClient.from('notas').update({ tablero: tableroReemplazo }).eq('id', nota.id);
+                }
+                renderizarMenuTableros();
+                renderizarUI();
+            }
+        }
+
+        // --- GESTIÓN ETIQUETAS ---
         function renderizarEtiquetasDOM() {
             const select = document.getElementById('filtro-etiqueta');
             const valorActual = select.value;
@@ -321,25 +381,17 @@
             select.innerHTML = opcionesHTML;
             if (etiquetasBD.some(e => e.nombre === valorActual) || valorActual === 'todas' || valorActual === 'sin-etiqueta') select.value = valorActual;
 
-            const htmlEspeciales = `
-                <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
-                <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-[ID]" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
-                <label class="cursor-pointer select-none"><input type="checkbox" id="check-todo-[ID]" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-yellow-500/20 text-yellow-400 bg-yellow-500/5 peer-checked:bg-yellow-900/80 peer-checked:text-yellow-200 peer-checked:border-yellow-600 transition-all hover:bg-yellow-500/10">📋 A To Do</div></label>
-            `;
-
-            let htmlCrear = '';
-            let htmlEditar = '';
-            
+            let htmlCrear = ''; let htmlEditar = '';
             etiquetasBD.forEach(e => {
                 htmlCrear += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
                 htmlEditar += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
             });
 
-            document.getElementById('contenedor-etiquetas-crear').innerHTML = htmlCrear + htmlEspeciales.replaceAll('[ID]', 'crear');
-            document.getElementById('contenedor-etiquetas-editar').innerHTML = htmlEditar + `
-                <div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div>
-                <label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>
-            `;
+            const especialCrear = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
+            const especialEditar = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
+
+            document.getElementById('contenedor-etiquetas-crear').innerHTML = htmlCrear + especialCrear;
+            document.getElementById('contenedor-etiquetas-editar').innerHTML = htmlEditar + especialEditar;
 
             const listaGestor = document.getElementById('lista-gestor-etiquetas');
             listaGestor.innerHTML = etiquetasBD.map(e => `
@@ -352,309 +404,214 @@
                 </div>
             `).join('');
         }
-
         function abrirGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.remove('hidden'); }
         function cerrarGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.add('hidden'); }
 
         async function crearEtiquetaBD() {
             const input = document.getElementById('nueva-etiqueta-nombre');
             const nombre = input.value.trim();
-            if (!nombre) return;
-            if(etiquetasBD.some(e => e.nombre.toLowerCase() === nombre.toLowerCase())) { alert("La etiqueta ya existe"); return; }
-
+            if (!nombre || etiquetasBD.some(e => e.nombre.toLowerCase() === nombre.toLowerCase())) return;
             const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
-            const nueva = { nombre: nombre, color: colorRandom, user_id: user.id };
-            
-            const { data, error } = await supabaseClient.from('etiquetas').insert([nueva]).select();
-            if (!error && data) {
-                etiquetasBD.push(data[0]);
-                input.value = '';
-                renderizarEtiquetasDOM();
-                renderizarUI(); 
-            }
+            const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre, color: colorRandom, user_id: user.id }]).select();
+            if (!error) { etiquetasBD.push(data[0]); input.value = ''; renderizarEtiquetasDOM(); renderizarUI(); }
         }
 
         async function editarEtiquetaBD(id, nombreAnterior) {
-            const nuevoNombre = prompt("Editar nombre de etiqueta:", nombreAnterior);
-            if (!nuevoNombre || nuevoNombre.trim() === '' || nuevoNombre === nombreAnterior) return;
-            const limpio = nuevoNombre.trim();
-
+            const limpio = prompt("Editar etiqueta:", nombreAnterior)?.trim();
+            if (!limpio || limpio === nombreAnterior) return;
             const { error } = await supabaseClient.from('etiquetas').update({ nombre: limpio }).eq('id', id);
             if (!error) {
-                const i = etiquetasBD.findIndex(e => e.id === id);
-                if (i > -1) etiquetasBD[i].nombre = limpio;
-
-                const afectadas = notas.filter(n => n.etiquetas && n.etiquetas.includes(nombreAnterior));
-                for (let nota of afectadas) {
-                    nota.etiquetas = nota.etiquetas.map(e => e === nombreAnterior ? limpio : e);
-                    await supabaseClient.from('notas').update({ etiquetas: nota.etiquetas }).eq('id', nota.id);
-                }
-                
-                const filtroVal = document.getElementById('filtro-etiqueta').value;
-                if(filtroVal === nombreAnterior) document.getElementById('filtro-etiqueta').value = limpio;
-
-                renderizarEtiquetasDOM();
-                renderizarUI();
+                etiquetasBD.find(e => e.id === id).nombre = limpio;
+                notas.filter(n => n.etiquetas?.includes(nombreAnterior)).forEach(async n => {
+                    n.etiquetas = n.etiquetas.map(e => e === nombreAnterior ? limpio : e);
+                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
+                });
+                renderizarEtiquetasDOM(); renderizarUI();
             }
         }
 
         async function eliminarEtiquetaBD(id, nombre) {
-            if (!confirm(`¿Borrar "${nombre}"? Se quitará de todas las notas.`)) return;
+            if (!confirm(`¿Borrar "${nombre}"?`)) return;
             const { error } = await supabaseClient.from('etiquetas').delete().eq('id', id);
-            
             if (!error) {
                 etiquetasBD = etiquetasBD.filter(e => e.id !== id);
-                
-                const afectadas = notas.filter(n => n.etiquetas && n.etiquetas.includes(nombre));
-                for (let nota of afectadas) {
-                    nota.etiquetas = nota.etiquetas.filter(e => e !== nombre);
-                    await supabaseClient.from('notas').update({ etiquetas: nota.etiquetas }).eq('id', nota.id);
-                }
-
-                if(document.getElementById('filtro-etiqueta').value === nombre) {
-                    document.getElementById('filtro-etiqueta').value = 'todas';
-                }
-
-                renderizarEtiquetasDOM();
-                renderizarUI();
+                notas.filter(n => n.etiquetas?.includes(nombre)).forEach(async n => {
+                    n.etiquetas = n.etiquetas.filter(e => e !== nombre);
+                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
+                });
+                renderizarEtiquetasDOM(); renderizarUI();
             }
         }
 
-        function abrirModalCrear() {
-            document.getElementById('modal-crear').classList.remove('hidden');
-            setTimeout(() => quill.focus(), 100);
-        }
-
+        // --- NOTAS ---
+        function abrirModalCrear() { document.getElementById('modal-crear').classList.remove('hidden'); setTimeout(() => quill.focus(), 100); }
         function cerrarModalCrear() {
             document.getElementById('modal-crear').classList.add('hidden');
-            quill.setContents([]);
-            document.getElementById('titulo-crear').value = '';
-            document.getElementById('check-urgente-crear').checked = false;
-            document.getElementById('check-todo-crear').checked = false;
+            quill.setContents([]); document.getElementById('titulo-crear').value = '';
             document.querySelectorAll('.etiqueta-crear').forEach(cb => cb.checked = false);
+            if(document.getElementById('check-urgente-crear')) document.getElementById('check-urgente-crear').checked = false;
         }
 
         async function agregarNota() {
             const textoPlano = quill.getText().trim();
             const tituloInput = document.getElementById('titulo-crear').value.trim();
-            
             if (textoPlano === '' && tituloInput === '') return;
 
-            const tituloFinal = tituloInput || `Nota ${notas.length + 1}`;
-            const contenidoHtml = quill.root.innerHTML;
-            
             const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
-            const isUrgente = document.getElementById('check-urgente-crear').checked;
-            const isTodo = document.getElementById('check-todo-crear').checked;
+            const isUrgente = document.getElementById('check-urgente-crear')?.checked;
             
-            let tableroInicial = 'general';
+            let tableroInicial = tablerosBD[0]?.nombre || 'general';
             if (isUrgente) etiquetasSeleccionadas.push('Urgente');
-            if (isUrgente || isTodo) tableroInicial = 'todo';
+            // Si es urgente, intenta mandarlo a 'todo' si existe, sino al primero
+            if (isUrgente && tablerosBD.some(t => t.nombre === 'todo')) tableroInicial = 'todo';
 
-            const nuevaNota = {
-                titulo: tituloFinal,
-                texto: contenidoHtml,
-                tablero: tableroInicial,
-                etiquetas: etiquetasSeleccionadas,
-                orden: 0,
-                user_id: user.id
+            const nueva = {
+                titulo: tituloInput || `Nota ${notas.length + 1}`, texto: quill.root.innerHTML,
+                tablero: tableroInicial, etiquetas: etiquetasSeleccionadas, orden: 0, user_id: user.id
             };
-
-            const { data, error } = await supabaseClient.from('notas').insert([nuevaNota]).select();
-            if (!error && data) {
-                notas.push(data[0]); 
-                renderizarUI();
-                cerrarModalCrear();
-            }
+            const { data, error } = await supabaseClient.from('notas').insert([nueva]).select();
+            if (!error && data) { notas.push(data[0]); renderizarUI(); cerrarModalCrear(); }
         }
 
         async function eliminarNota(id, event) {
-            event.stopPropagation();
-            notas = notas.filter(nota => nota.id !== id);
-            renderizarUI(); 
-            await supabaseClient.from('notas').delete().eq('id', id); 
+            event.stopPropagation(); notas = notas.filter(n => n.id !== id); renderizarUI();
+            await supabaseClient.from('notas').delete().eq('id', id);
         }
 
         function abrirModalEdicion(id) {
             const nota = notas.find(n => n.id === id);
             if (!nota) return;
-            
             idNotaEditando = id;
             document.getElementById('titulo-editar').value = nota.titulo || '';
-            document.getElementById('tablero-editar').value = nota.tablero || 'general';
+            document.getElementById('tablero-editar').value = nota.tablero;
             editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
 
             document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
-            document.getElementById('check-urgente-editar').checked = false;
+            if(document.getElementById('check-urgente-editar')) document.getElementById('check-urgente-editar').checked = false;
 
-            if (nota.etiquetas) {
-                nota.etiquetas.forEach(etq => {
-                    if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
-                    else {
-                        const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`);
-                        if (cb) cb.checked = true;
-                    }
-                });
-            }
+            nota.etiquetas?.forEach(etq => {
+                if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
+                else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
+            });
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
         function cerrarModalEdicion() {
-            document.getElementById('modal-edicion').classList.add('hidden');
-            idNotaEditando = null;
-            document.getElementById('titulo-editar').value = '';
-            editQuill.setContents([]);
+            document.getElementById('modal-edicion').classList.add('hidden'); idNotaEditando = null;
+            document.getElementById('titulo-editar').value = ''; editQuill.setContents([]);
         }
 
         async function guardarEdicion() {
             if (!idNotaEditando) return;
-            
-            const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
-            const nuevoHtml = editQuill.root.innerHTML;
-            
+            const index = notas.findIndex(n => n.id === idNotaEditando);
+            if (index === -1) return;
+
+            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
             const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
-            const esUrgente = document.getElementById('check-urgente-editar').checked;
             if (esUrgente) etiquetasSeleccionadas.push('Urgente');
 
-            const index = notas.findIndex(n => n.id === idNotaEditando);
-            if (index !== -1) {
-                notas[index].titulo = tituloEditado;
-                notas[index].texto = nuevoHtml;
-                notas[index].etiquetas = etiquetasSeleccionadas;
-                
-                let tableroFinal = document.getElementById('tablero-editar').value;
-                if (esUrgente) {
-                    tableroFinal = 'todo';
-                }
-                
-                const cambioTablero = notas[index].tablero !== tableroFinal;
-                notas[index].tablero = tableroFinal;
-                
-                renderizarUI(); 
-                
-                await supabaseClient.from('notas').update({ 
-                    titulo: tituloEditado, 
-                    texto: nuevoHtml, 
-                    etiquetas: etiquetasSeleccionadas,
-                    tablero: tableroFinal
-                }).eq('id', idNotaEditando);
+            let tableroFinal = document.getElementById('tablero-editar').value;
+            if (esUrgente && tablerosBD.some(t => t.nombre === 'todo')) tableroFinal = 'todo';
 
-                if(cambioTablero) actualizarOrdenLocalYBD(tableroFinal);
-            }
+            const cambioTablero = notas[index].tablero !== tableroFinal;
+            notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+            notas[index].texto = editQuill.root.innerHTML;
+            notas[index].etiquetas = etiquetasSeleccionadas;
+            notas[index].tablero = tableroFinal;
+
+            renderizarUI();
+            await supabaseClient.from('notas').update({ 
+                titulo: notas[index].titulo, texto: notas[index].texto, 
+                etiquetas: notas[index].etiquetas, tablero: tableroFinal 
+            }).eq('id', idNotaEditando);
+
+            if(cambioTablero) actualizarOrdenLocalYBD(tableroFinal);
             cerrarModalEdicion();
         }
 
-        function limpiarFiltros() {
-            document.getElementById('filtro-etiqueta').value = 'todas';
-            document.getElementById('filtro-urgente').checked = false;
-            document.getElementById('buscador').value = '';
-            renderizarUI();
-        }
+        function limpiarFiltros() { document.getElementById('filtro-etiqueta').value = 'todas'; document.getElementById('filtro-urgente').checked = false; document.getElementById('buscador').value = ''; renderizarUI(); }
 
+        // --- UI ---
         function renderizarUI() {
-            const contadores = { general: 0, todo: 0, cerrado: 0 };
-            tableros.forEach(t => { const el = document.getElementById(t); if(el) el.innerHTML = ''; });
+            const container = document.getElementById('tableros-container');
+            container.innerHTML = '';
+            const contadores = {};
+
+            tablerosBD.forEach(tab => {
+                contadores[tab.nombre] = 0;
+                let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
+                
+                // Colorización base de títulos
+                let tituloColor = 'text-slate-300';
+                if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
+                if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
+
+                container.innerHTML += `
+                    <div id="wrapper-${tab.nombre}" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                        <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('${tab.nombre}')">
+                            <h2 class="font-semibold ${tituloColor} text-sm select-none uppercase tracking-wider">${tab.nombre}</h2>
+                            <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                        </div>
+                        <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+                    </div>
+                `;
+            });
 
             const filtroUrgente = document.getElementById('filtro-urgente').checked;
             const filtroEtiqueta = document.getElementById('filtro-etiqueta').value;
-            const terminoBusqueda = document.getElementById('buscador').value.toLowerCase();
+            const term = document.getElementById('buscador').value.toLowerCase();
             const tempDiv = document.createElement('div');
-            
-            const hayFiltrosActivos = filtroUrgente || filtroEtiqueta !== 'todas' || terminoBusqueda !== '';
+            const hayFiltros = filtroUrgente || filtroEtiqueta !== 'todas' || term !== '';
 
-            // ORDENAR: Primero por 'orden' ascendente, si son iguales por 'created_at' descendente
-            notas.sort((a, b) => {
-                const ordA = a.orden || 0;
-                const ordB = b.orden || 0;
-                if (ordA !== ordB) return ordA - ordB;
-                return new Date(b.created_at) - new Date(a.created_at);
-            });
+            notas.sort((a, b) => (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at));
 
             notas.forEach(nota => {
-                if(nota.tablero === 'progreso') nota.tablero = 'general';
+                if (filtroUrgente && !nota.etiquetas?.includes('Urgente')) return;
+                if (filtroEtiqueta === 'sin-etiqueta' && nota.etiquetas?.length > 0) return;
+                if (filtroEtiqueta !== 'todas' && filtroEtiqueta !== 'sin-etiqueta' && !nota.etiquetas?.includes(filtroEtiqueta)) return;
 
-                if (filtroUrgente && (!nota.etiquetas || !nota.etiquetas.includes('Urgente'))) return;
-                if (filtroEtiqueta === 'sin-etiqueta' && nota.etiquetas && nota.etiquetas.length > 0) return;
-                if (filtroEtiqueta !== 'todas' && filtroEtiqueta !== 'sin-etiqueta' && (!nota.etiquetas || !nota.etiquetas.includes(filtroEtiqueta))) return;
-
-                if (terminoBusqueda) {
+                if (term) {
                     tempDiv.innerHTML = nota.texto;
-                    const textoPlano = tempDiv.innerText.toLowerCase();
-                    const tituloPlano = (nota.titulo || '').toLowerCase();
-                    const matcheaEtiquetas = nota.etiquetas ? nota.etiquetas.some(e => e.toLowerCase().includes(terminoBusqueda)) : false;
-                    if (!textoPlano.includes(terminoBusqueda) && !tituloPlano.includes(terminoBusqueda) && !matcheaEtiquetas) return;
+                    if (!tempDiv.innerText.toLowerCase().includes(term) && !(nota.titulo || '').toLowerCase().includes(term) && !nota.etiquetas?.some(e => e.toLowerCase().includes(term))) return;
                 }
 
                 if(contadores[nota.tablero] !== undefined) contadores[nota.tablero]++;
 
-                const elemento = document.createElement('div');
-                elemento.className = 'nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
-                elemento.draggable = true;
-                elemento.id = nota.id;
-                elemento.ondragstart = arrastrar;
+                const el = document.createElement('div');
+                el.className = 'nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
+                el.draggable = true; el.id = nota.id; el.ondragstart = arrastrar;
 
-                let htmlEtiquetas = '';
-                if (nota.etiquetas && nota.etiquetas.length > 0) {
-                    htmlEtiquetas = '<div class="flex flex-wrap gap-1.5 mb-2">';
-                    nota.etiquetas.forEach(etq => {
-                        if (etq === 'Urgente') {
-                            htmlEtiquetas += `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>`;
-                        } else {
-                            const dbTag = etiquetasBD.find(e => e.nombre === etq);
-                            const colorClase = dbTag ? dbTag.color : 'bg-slate-700 text-slate-300 border-slate-600';
-                            htmlEtiquetas += `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${colorClase}">${etq}</span>`;
-                        }
-                    });
-                    htmlEtiquetas += '</div>';
-                }
+                let htmlEtiquetas = nota.etiquetas?.length > 0 ? '<div class="flex flex-wrap gap-1.5 mb-2">' + nota.etiquetas.map(etq => etq === 'Urgente' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>` : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${etiquetasBD.find(e=>e.nombre===etq)?.color || 'bg-slate-700 text-slate-300 border-slate-600'}">${etq}</span>`).join('') + '</div>' : '';
 
-                const tituloMostrar = nota.titulo || 'Nota sin título';
-
-                elemento.innerHTML = `
+                el.innerHTML = `
                     ${htmlEtiquetas}
-                    <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1" title="Haz clic para editar">
-                        <h4 class="font-bold text-slate-100 text-sm mb-1">${tituloMostrar}</h4>
+                    <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1">
+                        <h4 class="font-bold text-slate-100 text-sm mb-1">${nota.titulo || 'Nota sin título'}</h4>
                         <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
                     </div>
-                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50" title="Eliminar nota">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                 `;
-
-                const contenedor = document.getElementById(nota.tablero);
-                if (contenedor) contenedor.appendChild(elemento);
+                const col = document.getElementById(nota.tablero);
+                if (col) col.appendChild(el);
             });
 
-            tableros.forEach(key => {
-                const badge = document.getElementById(`count-${key}`);
-                if(badge) badge.innerText = contadores[key];
-                
-                const wrapper = document.getElementById(`wrapper-${key}`);
-                if (wrapper) {
-                    if (hayFiltrosActivos && contadores[key] === 0) wrapper.style.display = 'none';
-                    else wrapper.style.display = '';
-                }
+            tablerosBD.forEach(tab => {
+                const badge = document.getElementById(`count-${tab.nombre}`);
+                if(badge) badge.innerText = contadores[tab.nombre];
+                const wrap = document.getElementById(`wrapper-${tab.nombre}`);
+                if(wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
             });
         }
 
-        // AUTO-SCROLL
+        // --- SCROLL Y DRAG & DROP ---
         let scrollInterval;
         document.addEventListener('dragover', (e) => {
-            const threshold = 100;
-            const step = 15;
             const mainApp = document.getElementById('main-app');
             if (!mainApp) return;
-
             clearInterval(scrollInterval);
-
-            if (e.clientY < threshold) {
-                scrollInterval = setInterval(() => mainApp.scrollBy(0, -step), 20);
-            } else if (window.innerHeight - e.clientY < threshold) {
-                scrollInterval = setInterval(() => mainApp.scrollBy(0, step), 20);
-            }
+            if (e.clientY < 100) scrollInterval = setInterval(() => mainApp.scrollBy(0, -15), 20);
+            else if (window.innerHeight - e.clientY < 100) scrollInterval = setInterval(() => mainApp.scrollBy(0, 15), 20);
         });
-
-        // LIMPIEZA DEL INDICADOR AL TERMINAR DE ARRASTRAR
         document.addEventListener('dragend', (e) => {
             clearInterval(scrollInterval);
             if (e.target && e.target.classList) e.target.classList.remove('dragging');
@@ -662,89 +619,53 @@
             if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
         });
 
-        // DRAG AND DROP - LÓGICA DE REORDENAMIENTO CON INDICADOR VISUAL
-        function arrastrar(event) { 
-            event.dataTransfer.setData("text", event.target.id); 
-            event.target.classList.add('dragging'); 
-        }
-        
+        function arrastrar(event) { event.dataTransfer.setData("text", event.target.id); event.target.classList.add('dragging'); }
         function permitirSoltar(event) { 
             event.preventDefault(); 
-            const destino = event.target;
-            const columnaDestino = destino.closest('.column');
-            const elementoArrastrado = document.querySelector('.dragging');
-
-            if (!columnaDestino || !elementoArrastrado) return;
+            const col = event.target.closest('.column');
+            const arrastrado = document.querySelector('.dragging');
+            if (!col || !arrastrado) return;
 
             dropIndicator.classList.remove('hidden');
-            const notaDestino = destino.closest('.nota-item');
-
-            if (notaDestino && notaDestino !== elementoArrastrado) {
-                const rect = notaDestino.getBoundingClientRect();
-                const offset = event.clientY - rect.top;
-                if (offset > rect.height / 2) {
-                    notaDestino.parentNode.insertBefore(dropIndicator, notaDestino.nextSibling);
-                } else {
-                    notaDestino.parentNode.insertBefore(dropIndicator, notaDestino);
-                }
-            } else if (columnaDestino && !notaDestino && event.target === columnaDestino) {
-                 columnaDestino.appendChild(dropIndicator);
-            }
+            const nota = event.target.closest('.nota-item');
+            if (nota && nota !== arrastrado) {
+                const offset = event.clientY - nota.getBoundingClientRect().top;
+                nota.parentNode.insertBefore(dropIndicator, offset > nota.offsetHeight / 2 ? nota.nextSibling : nota);
+            } else if (col && !nota && event.target === col) col.appendChild(dropIndicator);
         }
-        
         function soltar(event) {
             event.preventDefault();
             const id = event.dataTransfer.getData("text");
-            const elementoArrastrado = document.getElementById(id);
-            if (!elementoArrastrado) return;
+            const arrastrado = document.getElementById(id);
+            if (!arrastrado || !dropIndicator.parentNode) return;
             
-            elementoArrastrado.classList.remove('dragging');
-            
-            // Insertar la nota exactamente donde quedó el indicador visual
-            if (dropIndicator.parentNode) {
-                const columnaDestino = dropIndicator.closest('.column');
-                dropIndicator.parentNode.insertBefore(elementoArrastrado, dropIndicator);
-                dropIndicator.classList.add('hidden');
-                dropIndicator.remove();
-                if (columnaDestino) actualizarOrdenLocalYBD(columnaDestino.id);
-            }
+            arrastrado.classList.remove('dragging');
+            const col = dropIndicator.closest('.column');
+            dropIndicator.parentNode.insertBefore(arrastrado, dropIndicator);
+            dropIndicator.remove();
+            if (col) actualizarOrdenLocalYBD(col.id);
         }
 
         async function actualizarOrdenLocalYBD(tableroId) {
-            const columna = document.getElementById(tableroId);
-            if(!columna) return;
-            
-            const items = Array.from(columna.querySelectorAll('.nota-item'));
+            const col = document.getElementById(tableroId);
+            if(!col) return;
             let promesas = [];
-            
-            items.forEach((item, index) => {
+            Array.from(col.querySelectorAll('.nota-item')).forEach((item, i) => {
                 const nota = notas.find(n => n.id === item.id);
-                if (nota && (nota.tablero !== tableroId || nota.orden !== index)) {
-                    nota.tablero = tableroId;
-                    nota.orden = index;
-                    promesas.push(
-                        supabaseClient.from('notas').update({ tablero: tableroId, orden: index }).eq('id', nota.id)
-                    );
+                if (nota && (nota.tablero !== tableroId || nota.orden !== i)) {
+                    nota.tablero = tableroId; nota.orden = i;
+                    promesas.push(supabaseClient.from('notas').update({ tablero: tableroId, orden: i }).eq('id', nota.id));
                 }
             });
-            
             renderizarUI(); 
-            if(promesas.length > 0) await Promise.all(promesas);
+            if(promesas.length) await Promise.all(promesas);
         }
 
         function toggleMobile(id) {
             if (window.innerWidth >= 768) return; 
             const col = document.getElementById(id);
-            if (col.classList.contains('hidden')) {
-                col.classList.remove('hidden'); col.classList.add('flex');
-            } else {
-                col.classList.add('hidden'); col.classList.remove('flex');
-            }
-        }
-
-        if (window.innerWidth < 768) {
-            document.getElementById('todo').classList.remove('hidden');
-            document.getElementById('todo').classList.add('flex');
+            if (col.classList.contains('hidden')) { col.classList.remove('hidden'); col.classList.add('flex'); } 
+            else { col.classList.add('hidden'); col.classList.remove('flex'); }
         }
 
         checkSession();
