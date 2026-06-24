@@ -355,12 +355,18 @@
 
         async function eliminarTableroBD(id, nombre) {
             if (tablerosBD.length <= 1) { alert("Debe quedar al menos un tablero."); return; }
-            if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al primer tablero disponible.`)) return;
+            
+            // Verifica si 'general' existe y no es el que estamos borrando
+            const existeGeneral = tablerosBD.some(t => t.nombre === 'general' && t.id !== id);
+            
+            // Asigna 'general' o, si no existe, el primer tablero disponible que no sea el actual
+            const tableroReemplazo = existeGeneral ? 'general' : tablerosBD.find(t => t.id !== id).nombre;
+
+            if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al tablero "${tableroReemplazo}".`)) return;
 
             const { error } = await supabaseClient.from('tableros').delete().eq('id', id);
             if (!error) {
                 tablerosBD = tablerosBD.filter(t => t.id !== id);
-                const tableroReemplazo = tablerosBD[0].nombre;
 
                 const afectadas = notas.filter(n => n.tablero === nombre);
                 for (let nota of afectadas) {
@@ -462,7 +468,6 @@
             
             let tableroInicial = tablerosBD[0]?.nombre || 'general';
             if (isUrgente) etiquetasSeleccionadas.push('Urgente');
-            // Si es urgente, intenta mandarlo a 'todo' si existe, sino al primero
             if (isUrgente && tablerosBD.some(t => t.nombre === 'todo')) tableroInicial = 'todo';
 
             const nueva = {
@@ -537,20 +542,25 @@
             container.innerHTML = '';
             const contadores = {};
 
+            // Ordenamos los tableros de acuerdo al número de "orden" en BD
+            tablerosBD.sort((a, b) => a.orden - b.orden);
+
             tablerosBD.forEach(tab => {
                 contadores[tab.nombre] = 0;
                 let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
                 
-                // Colorización base de títulos
                 let tituloColor = 'text-slate-300';
                 if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
                 if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
 
                 container.innerHTML += `
-                    <div id="wrapper-${tab.nombre}" class="bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
-                        <div class="flex items-center justify-between p-3 cursor-pointer md:cursor-default bg-slate-800/30 rounded-t-xl" onclick="toggleMobile('${tab.nombre}')">
-                            <h2 class="font-semibold ${tituloColor} text-sm select-none uppercase tracking-wider">${tab.nombre}</h2>
-                            <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium">0</span>
+                    <div id="wrapper-${tab.nombre}" data-tablero-id="${tab.id}" class="board-wrapper bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50 transition-all duration-200" draggable="true" ondragstart="arrastrarTablero(event)" ondragover="permitirSoltarTablero(event)" ondrop="soltarTablero(event)" ondragend="terminarArrastreTablero(event)">
+                        <div class="flex items-center justify-between p-3 cursor-grab bg-slate-800/30 rounded-t-xl hover:bg-slate-700/50 transition-colors" onclick="toggleMobile('${tab.nombre}')">
+                            <div class="flex items-center gap-2 pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                <h2 class="font-semibold ${tituloColor} text-sm select-none uppercase tracking-wider">${tab.nombre}</h2>
+                            </div>
+                            <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium pointer-events-none">0</span>
                         </div>
                         <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
                     </div>
@@ -603,7 +613,7 @@
             });
         }
 
-        // --- SCROLL Y DRAG & DROP ---
+        // --- SCROLL Y DRAG & DROP DE NOTAS ---
         let scrollInterval;
         document.addEventListener('dragover', (e) => {
             const mainApp = document.getElementById('main-app');
@@ -619,9 +629,18 @@
             if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
         });
 
-        function arrastrar(event) { event.dataTransfer.setData("text", event.target.id); event.target.classList.add('dragging'); }
+        // Usamos un tipo de datos propio ("nota-id") para evitar conflictos con el arrastre de tableros
+        function arrastrar(event) { 
+            event.dataTransfer.setData("nota-id", event.target.id); 
+            event.target.classList.add('dragging'); 
+            event.stopPropagation();
+        }
+        
         function permitirSoltar(event) { 
+            if (!event.dataTransfer.types.includes("nota-id")) return;
             event.preventDefault(); 
+            event.stopPropagation();
+
             const col = event.target.closest('.column');
             const arrastrado = document.querySelector('.dragging');
             if (!col || !arrastrado) return;
@@ -633,9 +652,13 @@
                 nota.parentNode.insertBefore(dropIndicator, offset > nota.offsetHeight / 2 ? nota.nextSibling : nota);
             } else if (col && !nota && event.target === col) col.appendChild(dropIndicator);
         }
+        
         function soltar(event) {
+            if (!event.dataTransfer.types.includes("nota-id")) return;
             event.preventDefault();
-            const id = event.dataTransfer.getData("text");
+            event.stopPropagation();
+
+            const id = event.dataTransfer.getData("nota-id");
             const arrastrado = document.getElementById(id);
             if (!arrastrado || !dropIndicator.parentNode) return;
             
@@ -659,6 +682,68 @@
             });
             renderizarUI(); 
             if(promesas.length) await Promise.all(promesas);
+        }
+
+        // --- DRAG & DROP DE TABLEROS ---
+        let tableroArrastrado = null;
+
+        function arrastrarTablero(event) {
+            if (event.target.classList.contains('nota-item')) return; // Previene fallos si se arrastra una nota
+            
+            event.dataTransfer.setData("tablero-id", event.currentTarget.dataset.tableroId);
+            event.currentTarget.classList.add('opacity-40', 'scale-[0.98]');
+            tableroArrastrado = event.currentTarget;
+        }
+
+        function permitirSoltarTablero(event) {
+            if (!event.dataTransfer.types.includes("tablero-id")) return;
+            event.preventDefault();
+
+            const target = event.currentTarget;
+            if (target && target !== tableroArrastrado) {
+                // Intercambio DOM en vivo mientras se arrastra (Feedback visual)
+                const rect = target.getBoundingClientRect();
+                const isMobile = window.innerWidth < 768;
+                let insertAfter = isMobile ? (event.clientY > rect.top + rect.height / 2) : (event.clientX > rect.left + rect.width / 2);
+
+                if (insertAfter) {
+                    target.parentNode.insertBefore(tableroArrastrado, target.nextSibling);
+                } else {
+                    target.parentNode.insertBefore(tableroArrastrado, target);
+                }
+            }
+        }
+
+        async function soltarTablero(event) {
+            const id = event.dataTransfer.getData("tablero-id");
+            if (!id) return;
+            event.preventDefault();
+
+            if (tableroArrastrado) tableroArrastrado.classList.remove('opacity-40', 'scale-[0.98]');
+            await actualizarOrdenTableros();
+        }
+
+        function terminarArrastreTablero(event) {
+            event.currentTarget.classList.remove('opacity-40', 'scale-[0.98]');
+            tableroArrastrado = null;
+        }
+
+        async function actualizarOrdenTableros() {
+            const container = document.getElementById('tableros-container');
+            const wrappers = Array.from(container.querySelectorAll('.board-wrapper'));
+            let promesas = [];
+
+            wrappers.forEach((wrapper, index) => {
+                const id = wrapper.dataset.tableroId;
+                const tablero = tablerosBD.find(t => t.id === id);
+                if (tablero && tablero.orden !== index) {
+                    tablero.orden = index;
+                    promesas.push(supabaseClient.from('tableros').update({ orden: index }).eq('id', id));
+                }
+            });
+
+            tablerosBD.sort((a, b) => a.orden - b.orden); // Ordenar el array local
+            if(promesas.length > 0) await Promise.all(promesas);
         }
 
         function toggleMobile(id) {
