@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#0f1115">
-<link rel="apple-touch-icon" href="icon-192x192.png"> 
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Priel Notas</title>
+    
+    <!-- PWA Config -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f1115">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
@@ -61,6 +63,7 @@
         </div>
     </div>
 
+    <!-- GESTOR DE ETIQUETAS -->
     <div id="modal-gestor-etiquetas" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
@@ -79,6 +82,7 @@
         </div>
     </div>
 
+    <!-- GESTOR DE TABLEROS -->
     <div id="modal-gestor-tableros" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
@@ -97,6 +101,7 @@
         </div>
     </div>
 
+    <!-- MODAL CREAR -->
     <div id="modal-crear" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -119,6 +124,7 @@
         </div>
     </div>
 
+    <!-- MODAL EDICIÓN -->
     <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -144,6 +150,7 @@
         </div>
     </div>
 
+    <!-- APP PRINCIPAL -->
     <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
             <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
@@ -174,6 +181,7 @@
             </div>
         </div>
 
+        <!-- CONTENEDOR DINÁMICO DE TABLEROS -->
         <div id="tableros-container" class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto"></div>
     </div>
 
@@ -360,10 +368,7 @@
         async function eliminarTableroBD(id, nombre) {
             if (tablerosBD.length <= 1) { alert("Debe quedar al menos un tablero."); return; }
             
-            // Verifica si 'general' existe y no es el que estamos borrando
             const existeGeneral = tablerosBD.some(t => t.nombre === 'general' && t.id !== id);
-            
-            // Asigna 'general' o, si no existe, el primer tablero disponible que no sea el actual
             const tableroReemplazo = existeGeneral ? 'general' : tablerosBD.find(t => t.id !== id).nombre;
 
             if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al tablero "${tableroReemplazo}".`)) return;
@@ -487,21 +492,39 @@
             await supabaseClient.from('notas').delete().eq('id', id);
         }
 
-        function abrirModalEdicion(id) {
-            const nota = notas.find(n => n.id === id);
-            if (!nota) return;
+        async function abrirModalEdicion(id) {
+            const { data: notaActualizada, error } = await supabaseClient
+                .from('notas')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error || !notaActualizada) {
+                alert("Hubo un error al cargar la nota. Es posible que haya sido eliminada desde otro dispositivo.");
+                return;
+            }
+
+            const index = notas.findIndex(n => n.id === id);
+            if (index !== -1) notas[index] = notaActualizada;
+            
+            renderizarUI();
+
             idNotaEditando = id;
-            document.getElementById('titulo-editar').value = nota.titulo || '';
-            document.getElementById('tablero-editar').value = nota.tablero;
-            editQuill.clipboard.dangerouslyPasteHTML(nota.texto || '');
+            document.getElementById('titulo-editar').value = notaActualizada.titulo || '';
+            document.getElementById('tablero-editar').value = notaActualizada.tablero;
+            editQuill.clipboard.dangerouslyPasteHTML(notaActualizada.texto || '');
 
             document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
-            if(document.getElementById('check-urgente-editar')) document.getElementById('check-urgente-editar').checked = false;
+            if (document.getElementById('check-urgente-editar')) document.getElementById('check-urgente-editar').checked = false;
 
-            nota.etiquetas?.forEach(etq => {
+            notaActualizada.etiquetas?.forEach(etq => {
                 if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
-                else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
+                else { 
+                    const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); 
+                    if (cb) cb.checked = true; 
+                }
             });
+            
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
@@ -546,7 +569,6 @@
             container.innerHTML = '';
             const contadores = {};
 
-            // Ordenamos los tableros de acuerdo al número de "orden" en BD
             tablerosBD.sort((a, b) => a.orden - b.orden);
 
             tablerosBD.forEach(tab => {
@@ -633,7 +655,6 @@
             if (dropIndicator.parentNode) dropIndicator.parentNode.removeChild(dropIndicator);
         });
 
-        // Usamos un tipo de datos propio ("nota-id") para evitar conflictos con el arrastre de tableros
         function arrastrar(event) { 
             event.dataTransfer.setData("nota-id", event.target.id); 
             event.target.classList.add('dragging'); 
@@ -692,7 +713,7 @@
         let tableroArrastrado = null;
 
         function arrastrarTablero(event) {
-            if (event.target.classList.contains('nota-item')) return; // Previene fallos si se arrastra una nota
+            if (event.target.classList.contains('nota-item')) return;
             
             event.dataTransfer.setData("tablero-id", event.currentTarget.dataset.tableroId);
             event.currentTarget.classList.add('opacity-40', 'scale-[0.98]');
@@ -705,7 +726,6 @@
 
             const target = event.currentTarget;
             if (target && target !== tableroArrastrado) {
-                // Intercambio DOM en vivo mientras se arrastra (Feedback visual)
                 const rect = target.getBoundingClientRect();
                 const isMobile = window.innerWidth < 768;
                 let insertAfter = isMobile ? (event.clientY > rect.top + rect.height / 2) : (event.clientX > rect.left + rect.width / 2);
@@ -746,7 +766,7 @@
                 }
             });
 
-            tablerosBD.sort((a, b) => a.orden - b.orden); // Ordenar el array local
+            tablerosBD.sort((a, b) => a.orden - b.orden);
             if(promesas.length > 0) await Promise.all(promesas);
         }
 
@@ -758,13 +778,13 @@
         }
 
         checkSession();
-    
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js');
-    });
-  }
-</script>
 
+        // REGISTRO DE SERVICE WORKER PARA PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
