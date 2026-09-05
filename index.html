@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Priel Notas</title>
     
-    <!-- PWA Config -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f1115">
     <link rel="apple-touch-icon" href="/icon-192x192.png">
@@ -14,6 +13,18 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Polyfill para Drag & Drop en Móviles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/scroll-behaviour.min.js"></script>
+    <script>
+        MobileDragDrop.polyfill({
+            holdToDrag: 200,
+            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+        });
+        window.addEventListener('touchmove', function() {}, {passive: false});
+    </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -63,7 +74,6 @@
         </div>
     </div>
 
-    <!-- GESTOR DE ETIQUETAS -->
     <div id="modal-gestor-etiquetas" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
@@ -82,7 +92,6 @@
         </div>
     </div>
 
-    <!-- GESTOR DE TABLEROS -->
     <div id="modal-gestor-tableros" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
@@ -101,15 +110,17 @@
         </div>
     </div>
 
-    <!-- MODAL CREAR -->
     <div id="modal-crear" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nueva Nota</h3>
-                    <button onclick="cerrarModalCrear()" class="text-slate-400 hover:text-red-400 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <select id="tablero-crear" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500"></select>
+                        <button onclick="cerrarModalCrear()" class="text-slate-400 hover:text-red-400 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
@@ -124,7 +135,6 @@
         </div>
     </div>
 
-    <!-- MODAL EDICIÓN -->
     <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -150,7 +160,6 @@
         </div>
     </div>
 
-    <!-- APP PRINCIPAL -->
     <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
             <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
@@ -159,15 +168,9 @@
             </h1>
             <div class="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end flex-wrap">
                 <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium">Cerrar Sesión</button>
-                <button onclick="abrirGestorTableros()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
-                    Tableros
-                </button>
-                <button onclick="abrirGestorEtiquetas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
-                    Etiquetas
-                </button>
-                <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">
-                    Nueva Nota
-                </button>
+                <button onclick="abrirGestorTableros()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Tableros</button>
+                <button onclick="abrirGestorEtiquetas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Etiquetas</button>
+                <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Nueva Nota</button>
             </div>
         </div>
 
@@ -181,7 +184,6 @@
             </div>
         </div>
 
-        <!-- CONTENEDOR DINÁMICO DE TABLEROS -->
         <div id="tableros-container" class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto"></div>
     </div>
 
@@ -195,10 +197,10 @@
         let tablerosBD = [];
         let user = null;
         let idNotaEditando = null;
+        let ordenesTableros = {}; // 0: Manual, 1: A-Z, 2: Z-A
 
         const quillConfig = {
-            theme: 'snow',
-            placeholder: 'Escribe el texto de tu nota...',
+            theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{'list': 'ordered'}, {'list': 'bullet'}], ['clean'] ] }
         };
         var quill = new Quill('#editor-container', quillConfig);
@@ -219,8 +221,7 @@
         history.pushState(null, null, location.href);
         window.addEventListener('popstate', function(event) {
             if (!backPressed) {
-                backPressed = true;
-                history.pushState(null, null, location.href);
+                backPressed = true; history.pushState(null, null, location.href);
                 const toast = document.getElementById('toast-back');
                 toast.classList.remove('opacity-0');
                 setTimeout(() => { toast.classList.add('opacity-0'); backPressed = false; }, 2000);
@@ -250,8 +251,7 @@
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 const errEl = document.getElementById('auth-error');
-                errEl.innerText = error.message;
-                errEl.classList.remove('hidden');
+                errEl.innerText = error.message; errEl.classList.remove('hidden');
             } else {
                 user = data.user;
                 document.getElementById('auth-screen').classList.add('hidden');
@@ -266,12 +266,10 @@
             user = null; notas = []; etiquetasBD = []; tablerosBD = [];
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('email').value = '';
-            document.getElementById('password').value = '';
+            document.getElementById('email').value = ''; document.getElementById('password').value = '';
         }
 
         async function inicializarDatos() {
-            // Cargar Tableros
             const resTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
             if (!resTab.error) {
                 tablerosBD = resTab.data;
@@ -286,9 +284,9 @@
                     tablerosBD = refreshTab.data;
                 }
             }
+            tablerosBD.forEach(t => { if (ordenesTableros[t.nombre] === undefined) ordenesTableros[t.nombre] = 0; });
             renderizarMenuTableros();
 
-            // Cargar Etiquetas
             const resEtq = await supabaseClient.from('etiquetas').select('*');
             if (!resEtq.error) {
                 etiquetasBD = resEtq.data;
@@ -310,7 +308,6 @@
             document.getElementById('loading-screen').classList.add('hidden');
         }
 
-        // --- GESTIÓN TABLEROS ---
         function abrirGestorTableros() { document.getElementById('modal-gestor-tableros').classList.remove('hidden'); }
         function cerrarGestorTableros() { document.getElementById('modal-gestor-tableros').classList.add('hidden'); }
 
@@ -326,8 +323,9 @@
                 </div>
             `).join('');
 
-            const selectEditar = document.getElementById('tablero-editar');
-            if(selectEditar) selectEditar.innerHTML = tablerosBD.map(t => `<option value="${t.nombre}">${t.nombre.toUpperCase()}</option>`).join('');
+            const opts = tablerosBD.map(t => `<option value="${t.nombre}">${t.nombre.toUpperCase()}</option>`).join('');
+            if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = opts;
+            if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = opts;
         }
 
         async function crearTableroBD() {
@@ -339,9 +337,9 @@
             const { data, error } = await supabaseClient.from('tableros').insert([nuevo]).select();
             if (!error && data) {
                 tablerosBD.push(data[0]);
+                ordenesTableros[nombre] = 0;
                 input.value = '';
-                renderizarMenuTableros();
-                renderizarUI();
+                renderizarMenuTableros(); renderizarUI();
             }
         }
 
@@ -355,13 +353,15 @@
                 const idx = tablerosBD.findIndex(t => t.id === id);
                 if (idx > -1) tablerosBD[idx].nombre = limpio;
 
+                ordenesTableros[limpio] = ordenesTableros[nombreAnterior] || 0;
+                delete ordenesTableros[nombreAnterior];
+
                 const afectadas = notas.filter(n => n.tablero === nombreAnterior);
                 for (let nota of afectadas) {
                     nota.tablero = limpio;
                     await supabaseClient.from('notas').update({ tablero: limpio }).eq('id', nota.id);
                 }
-                renderizarMenuTableros();
-                renderizarUI();
+                renderizarMenuTableros(); renderizarUI();
             }
         }
 
@@ -376,18 +376,17 @@
             const { error } = await supabaseClient.from('tableros').delete().eq('id', id);
             if (!error) {
                 tablerosBD = tablerosBD.filter(t => t.id !== id);
+                delete ordenesTableros[nombre];
 
                 const afectadas = notas.filter(n => n.tablero === nombre);
                 for (let nota of afectadas) {
                     nota.tablero = tableroReemplazo;
                     await supabaseClient.from('notas').update({ tablero: tableroReemplazo }).eq('id', nota.id);
                 }
-                renderizarMenuTableros();
-                renderizarUI();
+                renderizarMenuTableros(); renderizarUI();
             }
         }
 
-        // --- GESTIÓN ETIQUETAS ---
         function renderizarEtiquetasDOM() {
             const select = document.getElementById('filtro-etiqueta');
             const valorActual = select.value;
@@ -458,7 +457,6 @@
             }
         }
 
-        // --- NOTAS ---
         function abrirModalCrear() { document.getElementById('modal-crear').classList.remove('hidden'); setTimeout(() => quill.focus(), 100); }
         function cerrarModalCrear() {
             document.getElementById('modal-crear').classList.add('hidden');
@@ -475,9 +473,8 @@
             const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
             const isUrgente = document.getElementById('check-urgente-crear')?.checked;
             
-            let tableroInicial = tablerosBD[0]?.nombre || 'general';
+            let tableroInicial = document.getElementById('tablero-crear').value || tablerosBD[0]?.nombre;
             if (isUrgente) etiquetasSeleccionadas.push('Urgente');
-            if (isUrgente && tablerosBD.some(t => t.nombre === 'todo')) tableroInicial = 'todo';
 
             const nueva = {
                 titulo: tituloInput || `Nota ${notas.length + 1}`, texto: quill.root.innerHTML,
@@ -493,20 +490,11 @@
         }
 
         async function abrirModalEdicion(id) {
-            const { data: notaActualizada, error } = await supabaseClient
-                .from('notas')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (error || !notaActualizada) {
-                alert("Hubo un error al cargar la nota. Es posible que haya sido eliminada desde otro dispositivo.");
-                return;
-            }
+            const { data: notaActualizada, error } = await supabaseClient.from('notas').select('*').eq('id', id).single();
+            if (error || !notaActualizada) { alert("Error: Nota no encontrada en el servidor."); return; }
 
             const index = notas.findIndex(n => n.id === id);
             if (index !== -1) notas[index] = notaActualizada;
-            
             renderizarUI();
 
             idNotaEditando = id;
@@ -519,12 +507,8 @@
 
             notaActualizada.etiquetas?.forEach(etq => {
                 if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
-                else { 
-                    const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); 
-                    if (cb) cb.checked = true; 
-                }
+                else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
             });
-            
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
@@ -543,9 +527,8 @@
             if (esUrgente) etiquetasSeleccionadas.push('Urgente');
 
             let tableroFinal = document.getElementById('tablero-editar').value;
-            if (esUrgente && tablerosBD.some(t => t.nombre === 'todo')) tableroFinal = 'todo';
-
             const cambioTablero = notas[index].tablero !== tableroFinal;
+            
             notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
             notas[index].texto = editQuill.root.innerHTML;
             notas[index].etiquetas = etiquetasSeleccionadas;
@@ -557,40 +540,29 @@
                 etiquetas: notas[index].etiquetas, tablero: tableroFinal 
             }).eq('id', idNotaEditando);
 
-            if(cambioTablero) actualizarOrdenLocalYBD(tableroFinal);
+            if(cambioTablero && ordenesTableros[tableroFinal] === 0) actualizarOrdenLocalYBD(tableroFinal);
             cerrarModalEdicion();
         }
 
         function limpiarFiltros() { document.getElementById('filtro-etiqueta').value = 'todas'; document.getElementById('filtro-urgente').checked = false; document.getElementById('buscador').value = ''; renderizarUI(); }
 
-        // --- UI ---
+        function cambiarOrden(tableroNombre, event) {
+            event.stopPropagation();
+            ordenesTableros[tableroNombre] = ((ordenesTableros[tableroNombre] || 0) + 1) % 3;
+            renderizarUI();
+        }
+
         function renderizarUI() {
             const container = document.getElementById('tableros-container');
             container.innerHTML = '';
-            const contadores = {};
-
+            
+            let notasPorTablero = {};
+            let contadores = {};
+            
             tablerosBD.sort((a, b) => a.orden - b.orden);
-
-            tablerosBD.forEach(tab => {
-                contadores[tab.nombre] = 0;
-                let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
-                
-                let tituloColor = 'text-slate-300';
-                if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
-                if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
-
-                container.innerHTML += `
-                    <div id="wrapper-${tab.nombre}" data-tablero-id="${tab.id}" class="board-wrapper bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50 transition-all duration-200" draggable="true" ondragstart="arrastrarTablero(event)" ondragover="permitirSoltarTablero(event)" ondrop="soltarTablero(event)" ondragend="terminarArrastreTablero(event)">
-                        <div class="flex items-center justify-between p-3 cursor-grab bg-slate-800/30 rounded-t-xl hover:bg-slate-700/50 transition-colors" onclick="toggleMobile('${tab.nombre}')">
-                            <div class="flex items-center gap-2 pointer-events-none">
-                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                <h2 class="font-semibold ${tituloColor} text-sm select-none uppercase tracking-wider">${tab.nombre}</h2>
-                            </div>
-                            <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium pointer-events-none">0</span>
-                        </div>
-                        <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
-                    </div>
-                `;
+            tablerosBD.forEach(tab => { 
+                notasPorTablero[tab.nombre] = []; 
+                contadores[tab.nombre] = 0; 
             });
 
             const filtroUrgente = document.getElementById('filtro-urgente').checked;
@@ -598,8 +570,6 @@
             const term = document.getElementById('buscador').value.toLowerCase();
             const tempDiv = document.createElement('div');
             const hayFiltros = filtroUrgente || filtroEtiqueta !== 'todas' || term !== '';
-
-            notas.sort((a, b) => (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at));
 
             notas.forEach(nota => {
                 if (filtroUrgente && !nota.etiquetas?.includes('Urgente')) return;
@@ -611,35 +581,85 @@
                     if (!tempDiv.innerText.toLowerCase().includes(term) && !(nota.titulo || '').toLowerCase().includes(term) && !nota.etiquetas?.some(e => e.toLowerCase().includes(term))) return;
                 }
 
-                if(contadores[nota.tablero] !== undefined) contadores[nota.tablero]++;
-
-                const el = document.createElement('div');
-                el.className = 'nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 cursor-grab hover:border-slate-500 transition-all group relative flex flex-col';
-                el.draggable = true; el.id = nota.id; el.ondragstart = arrastrar;
-
-                let htmlEtiquetas = nota.etiquetas?.length > 0 ? '<div class="flex flex-wrap gap-1.5 mb-2">' + nota.etiquetas.map(etq => etq === 'Urgente' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>` : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${etiquetasBD.find(e=>e.nombre===etq)?.color || 'bg-slate-700 text-slate-300 border-slate-600'}">${etq}</span>`).join('') + '</div>' : '';
-
-                el.innerHTML = `
-                    ${htmlEtiquetas}
-                    <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1">
-                        <h4 class="font-bold text-slate-100 text-sm mb-1">${nota.titulo || 'Nota sin título'}</h4>
-                        <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
-                    </div>
-                    <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                `;
-                const col = document.getElementById(nota.tablero);
-                if (col) col.appendChild(el);
+                if(notasPorTablero[nota.tablero]) {
+                    notasPorTablero[nota.tablero].push(nota);
+                    contadores[nota.tablero]++;
+                }
             });
 
             tablerosBD.forEach(tab => {
-                const badge = document.getElementById(`count-${tab.nombre}`);
-                if(badge) badge.innerText = contadores[tab.nombre];
+                let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
+                let tituloColor = 'text-slate-300';
+                if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
+                if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
+
+                let ordenEstado = ordenesTableros[tab.nombre] || 0;
+                let iconoOrden = '⇅';
+                let colorOrden = 'text-slate-500 hover:text-slate-300';
+                if (ordenEstado === 1) { iconoOrden = 'A-Z'; colorOrden = 'text-blue-400'; }
+                if (ordenEstado === 2) { iconoOrden = 'Z-A'; colorOrden = 'text-blue-400'; }
+
+                let tableroHtml = `
+                    <div id="wrapper-${tab.nombre}" data-tablero-id="${tab.id}" class="board-wrapper bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50 transition-all duration-200" draggable="true" ondragstart="arrastrarTablero(event)" ondragover="permitirSoltarTablero(event)" ondrop="soltarTablero(event)" ondragend="terminarArrastreTablero(event)">
+                        <div class="flex items-center justify-between p-3 cursor-grab bg-slate-800/30 rounded-t-xl hover:bg-slate-700/50 transition-colors" onclick="toggleMobile('${tab.nombre}')">
+                            <div class="flex items-center gap-2 pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                <h2 class="font-semibold ${tituloColor} text-sm select-none uppercase tracking-wider">${tab.nombre}</h2>
+                            </div>
+                            <div class="flex items-center gap-2 pointer-events-auto">
+                                <button onclick="cambiarOrden('${tab.nombre}', event)" class="${colorOrden} text-[10px] font-bold px-1 py-0.5 rounded transition-colors" title="Alternar orden">${iconoOrden}</button>
+                                <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium pointer-events-none">${contadores[tab.nombre]}</span>
+                            </div>
+                        </div>
+                        <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto" ondragover="permitirSoltar(event)" ondrop="soltar(event)"></div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', tableroHtml);
+
+                const col = document.getElementById(tab.nombre);
+                let notasDelTablero = notasPorTablero[tab.nombre];
+
+                notasDelTablero.sort((a, b) => {
+                    if (ordenEstado === 0) {
+                        return (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at);
+                    } else {
+                        let tagA = (a.etiquetas && a.etiquetas.length > 0) ? a.etiquetas[0].toLowerCase() : 'zzz';
+                        let tagB = (b.etiquetas && b.etiquetas.length > 0) ? b.etiquetas[0].toLowerCase() : 'zzz';
+                        if (a.etiquetas?.includes('Urgente')) tagA = '000';
+                        if (b.etiquetas?.includes('Urgente')) tagB = '000';
+                        
+                        if (tagA === tagB) return (a.orden || 0) - (b.orden || 0);
+                        if (ordenEstado === 1) return tagA.localeCompare(tagB);
+                        if (ordenEstado === 2) return tagB.localeCompare(tagA);
+                    }
+                });
+
+                notasDelTablero.forEach(nota => {
+                    const el = document.createElement('div');
+                    el.className = `nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 transition-all group relative flex flex-col ${ordenEstado === 0 ? 'cursor-grab hover:border-slate-500' : 'opacity-90'}`;
+                    
+                    if (ordenEstado === 0) {
+                        el.draggable = true; el.id = nota.id; el.ondragstart = arrastrar;
+                    }
+
+                    let htmlEtiquetas = nota.etiquetas?.length > 0 ? '<div class="flex flex-wrap gap-1.5 mb-2">' + nota.etiquetas.map(etq => etq === 'Urgente' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>` : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${etiquetasBD.find(e=>e.nombre===etq)?.color || 'bg-slate-700 text-slate-300 border-slate-600'}">${etq}</span>`).join('') + '</div>' : '';
+
+                    el.innerHTML = `
+                        ${htmlEtiquetas}
+                        <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1">
+                            <h4 class="font-bold text-slate-100 text-sm mb-1">${nota.titulo || 'Nota sin título'}</h4>
+                            <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
+                        </div>
+                        <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    `;
+                    col.appendChild(el);
+                });
+
                 const wrap = document.getElementById(`wrapper-${tab.nombre}`);
-                if(wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
+                if (wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
             });
         }
 
-        // --- SCROLL Y DRAG & DROP DE NOTAS ---
         let scrollInterval;
         document.addEventListener('dragover', (e) => {
             const mainApp = document.getElementById('main-app');
@@ -669,6 +689,9 @@
             const col = event.target.closest('.column');
             const arrastrado = document.querySelector('.dragging');
             if (!col || !arrastrado) return;
+
+            // Bloquear soltar en columnas ordenadas alfabéticamente
+            if (ordenesTableros[col.id] !== 0) return;
 
             dropIndicator.classList.remove('hidden');
             const nota = event.target.closest('.nota-item');
@@ -709,12 +732,9 @@
             if(promesas.length) await Promise.all(promesas);
         }
 
-        // --- DRAG & DROP DE TABLEROS ---
         let tableroArrastrado = null;
-
         function arrastrarTablero(event) {
             if (event.target.classList.contains('nota-item')) return;
-            
             event.dataTransfer.setData("tablero-id", event.currentTarget.dataset.tableroId);
             event.currentTarget.classList.add('opacity-40', 'scale-[0.98]');
             tableroArrastrado = event.currentTarget;
@@ -723,18 +743,13 @@
         function permitirSoltarTablero(event) {
             if (!event.dataTransfer.types.includes("tablero-id")) return;
             event.preventDefault();
-
             const target = event.currentTarget;
             if (target && target !== tableroArrastrado) {
                 const rect = target.getBoundingClientRect();
                 const isMobile = window.innerWidth < 768;
                 let insertAfter = isMobile ? (event.clientY > rect.top + rect.height / 2) : (event.clientX > rect.left + rect.width / 2);
-
-                if (insertAfter) {
-                    target.parentNode.insertBefore(tableroArrastrado, target.nextSibling);
-                } else {
-                    target.parentNode.insertBefore(tableroArrastrado, target);
-                }
+                if (insertAfter) target.parentNode.insertBefore(tableroArrastrado, target.nextSibling);
+                else target.parentNode.insertBefore(tableroArrastrado, target);
             }
         }
 
@@ -742,7 +757,6 @@
             const id = event.dataTransfer.getData("tablero-id");
             if (!id) return;
             event.preventDefault();
-
             if (tableroArrastrado) tableroArrastrado.classList.remove('opacity-40', 'scale-[0.98]');
             await actualizarOrdenTableros();
         }
@@ -756,7 +770,6 @@
             const container = document.getElementById('tableros-container');
             const wrappers = Array.from(container.querySelectorAll('.board-wrapper'));
             let promesas = [];
-
             wrappers.forEach((wrapper, index) => {
                 const id = wrapper.dataset.tableroId;
                 const tablero = tablerosBD.find(t => t.id === id);
@@ -765,7 +778,6 @@
                     promesas.push(supabaseClient.from('tableros').update({ orden: index }).eq('id', id));
                 }
             });
-
             tablerosBD.sort((a, b) => a.orden - b.orden);
             if(promesas.length > 0) await Promise.all(promesas);
         }
@@ -779,11 +791,8 @@
 
         checkSession();
 
-        // REGISTRO DE SERVICE WORKER PARA PWA
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js');
-            });
+            window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
         }
     </script>
 </body>
