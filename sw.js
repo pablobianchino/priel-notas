@@ -1,4 +1,4 @@
-const CACHE_NAME = 'priel-notas-v1';
+const CACHE_NAME = 'priel-notas-v2';
 const urlsToCache = [
   '/',
   '/manifest.json'
