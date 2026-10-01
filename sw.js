@@ -1,7 +1,6 @@
-const CACHE_NAME = 'priel-notas-v2.1.0';
+const CACHE_NAME = 'priel-notas-v2.2.0';
 const urlsToCache = ['/', '/manifest.json'];
 
-// Forzar activación inmediata
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -9,7 +8,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// Limpieza de versiones obsoletas y toma de control inmediata
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
@@ -18,7 +16,6 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Estrategia Network-First para documentos de navegación
 self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
