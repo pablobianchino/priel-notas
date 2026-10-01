@@ -14,7 +14,7 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Librería estándar de Drag & Drop para móviles y PC -->
+    <!-- SortableJS para Drag & Drop en Móviles y PC -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
     <style>
@@ -39,7 +39,6 @@
         .nota-contenido p { margin-bottom: 0.25rem; }
         .nota-contenido p:last-child { margin-bottom: 0; }
 
-        /* Estilo visual para la posición exacta donde caerá la nota */
         .drop-ghost {
             background: #1e293b !important;
             border: 2px dashed #3b82f6 !important;
@@ -135,11 +134,15 @@
         </div>
     </div>
 
+    <!-- MODAL EDICIÓN CON INDICADOR DE AUTOGUARDADO -->
     <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
+                        <span id="indicador-autoguardado" class="text-[11px] text-slate-400 font-mono transition-opacity duration-300"></span>
+                    </div>
                     <div class="flex items-center gap-3">
                         <select id="tablero-editar" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500"></select>
                         <button onclick="cerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
@@ -167,7 +170,7 @@
                     <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Priel Notas
                 </h1>
-                <span id="app-version-badge" class="text-[11px] font-mono bg-blue-950/60 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded">v2.1.0</span>
+                <span id="app-version-badge" class="text-[11px] font-mono bg-blue-950/60 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded">v2.2.0</span>
             </div>
             <div class="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end flex-wrap">
                 <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium">Cerrar Sesión</button>
@@ -191,7 +194,7 @@
     </div>
 
     <script>
-        const CURRENT_VERSION = 'v2.1.0';
+        const CURRENT_VERSION = 'v2.2.0';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -201,8 +204,12 @@
         let tablerosBD = [];
         let user = null;
         let idNotaEditando = null;
-        let ordenesTableros = {}; // 0: Manual, 1: A-Z, 2: Z-A
+        let ordenesTableros = {}; 
         let sortablesInstances = [];
+
+        // Variables de Autoguardado
+        let timerAutoGuardado = null;
+        let estadoUltimoGuardado = '';
 
         const quillConfig = {
             theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
@@ -210,6 +217,36 @@
         };
         var quill = new Quill('#editor-container', quillConfig);
         var editQuill = new Quill('#edit-editor-container', quillConfig);
+
+        // INTERCEPTOR DE PORTAPAPELES: Copiar formato universalmente
+        document.addEventListener('copy', function(e) {
+            const selection = window.getSelection();
+            if (!selection || !selection.rangeCount) return;
+
+            const anchorNode = selection.anchorNode;
+            if (!anchorNode) return;
+            const editorEl = anchorNode.nodeType === 1 ? anchorNode.closest('.ql-editor') : anchorNode.parentElement?.closest('.ql-editor');
+            if (!editorEl) return;
+
+            const range = selection.getRangeAt(0);
+            const fragment = range.cloneContents();
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(fragment);
+
+            // Convertir elementos Quill a HTML estándar universal con estilos en línea
+            tempDiv.querySelectorAll('.ql-align-center').forEach(el => el.style.textAlign = 'center');
+            tempDiv.querySelectorAll('.ql-align-right').forEach(el => el.style.textAlign = 'right');
+            tempDiv.querySelectorAll('.ql-align-justify').forEach(el => el.style.textAlign = 'justify');
+
+            const htmlContent = tempDiv.innerHTML;
+            const plainText = selection.toString();
+
+            if (e.clipboardData) {
+                e.clipboardData.setData('text/html', htmlContent);
+                e.clipboardData.setData('text/plain', plainText);
+                e.preventDefault();
+            }
+        });
 
         const paletas = [
             'bg-purple-900/50 text-purple-300 border-purple-700/50',
@@ -490,6 +527,15 @@
             await supabaseClient.from('notas').delete().eq('id', id);
         }
 
+        function serializarEstadoEdicion() {
+            const titulo = document.getElementById('titulo-editar').value.trim();
+            const texto = editQuill.root.innerHTML;
+            const tablero = document.getElementById('tablero-editar').value;
+            const etiquetas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (document.getElementById('check-urgente-editar')?.checked) etiquetas.push('Urgente');
+            return JSON.stringify({ titulo, texto, tablero, etiquetas });
+        }
+
         async function abrirModalEdicion(id) {
             const { data: notaActualizada, error } = await supabaseClient.from('notas').select('*').eq('id', id).single();
             if (error || !notaActualizada) { alert("Error: Nota no encontrada en el servidor."); return; }
@@ -510,16 +556,74 @@
                 if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
                 else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
             });
+
+            document.getElementById('indicador-autoguardado').innerText = '';
+            estadoUltimoGuardado = serializarEstadoEdicion();
+
+            // Iniciar temporizador de guardado automático (cada 60 segundos)
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = setInterval(ejecutarAutoGuardadoSilencioso, 60000);
+
             document.getElementById('modal-edicion').classList.remove('hidden');
         }
 
         function cerrarModalEdicion() {
-            document.getElementById('modal-edicion').classList.add('hidden'); idNotaEditando = null;
-            document.getElementById('titulo-editar').value = ''; editQuill.setContents([]);
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = null;
+            document.getElementById('modal-edicion').classList.add('hidden');
+            idNotaEditando = null;
+            document.getElementById('titulo-editar').value = '';
+            document.getElementById('indicador-autoguardado').innerText = '';
+            editQuill.setContents([]);
+        }
+
+        async function ejecutarAutoGuardadoSilencioso() {
+            if (!idNotaEditando) return;
+            const estadoActual = serializarEstadoEdicion();
+            if (estadoActual === estadoUltimoGuardado) return; // No hay cambios para guardar
+
+            const ind = document.getElementById('indicador-autoguardado');
+            ind.innerText = 'Guardando...';
+
+            const index = notas.findIndex(n => n.id === idNotaEditando);
+            if (index === -1) return;
+
+            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (esUrgente) etiquetasSeleccionadas.push('Urgente');
+
+            let tableroFinal = document.getElementById('tablero-editar').value;
+            const cambioTablero = notas[index].tablero !== tableroFinal;
+
+            const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+            const textoEditado = editQuill.root.innerHTML;
+
+            notas[index].titulo = tituloEditado;
+            notas[index].texto = textoEditado;
+            notas[index].etiquetas = etiquetasSeleccionadas;
+            notas[index].tablero = tableroFinal;
+
+            await supabaseClient.from('notas').update({ 
+                titulo: tituloEditado, texto: textoEditado, 
+                etiquetas: etiquetasSeleccionadas, tablero: tableroFinal 
+            }).eq('id', idNotaEditando);
+
+            estadoUltimoGuardado = estadoActual;
+            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            ind.innerText = `Autoguardado ${hora}`;
+
+            if (cambioTablero && ordenesTableros[tableroFinal] === 0) {
+                await actualizarOrdenLocalYBD(tableroFinal);
+            } else {
+                renderizarUI();
+            }
         }
 
         async function guardarEdicion() {
             if (!idNotaEditando) return;
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = null;
+
             const index = notas.findIndex(n => n.id === idNotaEditando);
             if (index === -1) return;
 
@@ -554,11 +658,9 @@
         }
 
         function inicializarSortables() {
-            // Destruir instancias anteriores para evitar memory leaks
             sortablesInstances.forEach(s => s.destroy());
             sortablesInstances = [];
 
-            // 1. Sortable para las Notas dentro de cada tablero
             tablerosBD.forEach(tab => {
                 const col = document.getElementById(tab.nombre);
                 if (!col) return;
@@ -568,7 +670,7 @@
                     animation: 150,
                     ghostClass: 'drop-ghost',
                     disabled: (ordenesTableros[tab.nombre] || 0) !== 0,
-                    delay: 120, // 120ms para distinguir toque de scroll en móvil
+                    delay: 120,
                     delayOnTouchOnly: true,
                     onEnd: async function(evt) {
                         const origenTablero = evt.from.id;
@@ -583,7 +685,6 @@
                 sortablesInstances.push(instance);
             });
 
-            // 2. Sortable para las Columnas de Tableros
             const container = document.getElementById('tableros-container');
             if (container) {
                 const boardSortable = new Sortable(container, {
@@ -704,7 +805,6 @@
                 if (wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
             });
 
-            // Re-enlazar listeners táctiles después del render
             inicializarSortables();
         }
 
@@ -752,7 +852,6 @@
 
         checkSession();
 
-        // Registro de Service Worker con parámetro de versión y recarga automática
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register(`/sw.js?v=${CURRENT_VERSION}`).then(reg => {
