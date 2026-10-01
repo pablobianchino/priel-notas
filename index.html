@@ -2,1245 +2,896 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priel Notas</title>
     
-    <!-- FORZAR ACTUALIZACIÓN DE CACHÉ -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
-    <title>Control de Gastos Priel</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Gastos Priel">
-    
-    <link rel="icon" type="image/jpeg" href="logo.jpg">
-    <link rel="apple-touch-icon" href="logo.jpg">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f1115">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // El parámetro ?v=2.4 fuerza al navegador a actualizar el Service Worker
-          navigator.serviceWorker.register('sw.js?v=2.4')
-          .then(function(registration) {
-            console.log('SW registrado exitosamente.');
-          })
-          .catch(function(err) {
-            console.log('Fallo en el registro del SW:', err);
-          });
-        });
-      }
-    </script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
     <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --success: #10b981;
-            --danger: #ef4444;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .column { min-height: 120px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #334155 !important; background-color: transparent; padding: 8px 0 !important; margin-bottom: 8px; }
+        .ql-container.ql-snow { border: none !important; font-family: 'Inter', sans-serif; font-size: 0.95rem; }
+        
+        #editor-container .ql-editor, #edit-editor-container .ql-editor { min-height: 200px; max-height: 40vh; overflow-y: auto; }
+        .ql-editor.ql-blank::before { color: #64748b; font-style: normal; left: 0; }
+        .ql-snow .ql-stroke { stroke: #cbd5e1; }
+        .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: #cbd5e1; }
+        
+        .nota-contenido ul { list-style-type: disc; padding-left: 1.25rem; margin-top: 0.25rem; }
+        .nota-contenido ol { list-style-type: decimal; padding-left: 1.25rem; margin-top: 0.25rem; }
+        .nota-contenido blockquote { border-left: 3px solid #475569; padding-left: 1rem; color: #94a3b8; margin: 0.5rem 0; font-style: italic; }
+        .nota-contenido p { margin-bottom: 0.25rem; }
+        .nota-contenido p:last-child { margin-bottom: 0; }
+
+        .drop-ghost {
+            background: #1e293b !important;
+            border: 2px dashed #3b82f6 !important;
+            opacity: 0.6 !important;
         }
-
-        * { box-sizing: border-box; }
-
-        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-main); }
-        .card { background: var(--card-bg); padding: 24px; margin-bottom: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); width: 100%; }
-        
-        #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 6000; }
-        .spinner { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; animation: pulse 1.5s infinite ease-in-out; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
-
-        #login-container { max-width: 380px; margin: 100px auto; text-align: center; padding: 20px;}
-        .error-msg { color: var(--danger); font-size: 0.9em; margin-top: 10px; display: none; }
-
-        #app-wrapper { display: none; min-height: 100vh; flex-direction: row; }
-        
-        #sidebar { width: 250px; background: white; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;}
-        .sidebar-menu { list-style: none; padding: 0; margin: 0; }
-        .sidebar-menu li { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #f9fafb; font-weight: 500; color: var(--text-muted); }
-        .sidebar-menu li:hover { background: #f3f4f6; color: var(--primary); }
-        .sidebar-menu li.active { background: #e0e7ff; color: var(--primary); border-right: 4px solid var(--primary); }
-        .close-sidebar-btn { display: none; background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-muted); width: auto; padding: 0;}
-
-        #main-content { flex: 1; padding: 20px; max-width: 1200px; margin: auto; overflow-x: hidden; width: 100%; }
-        
-        .header { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 24px; gap: 12px; }
-        .hamburger-btn { display: none; background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-main); width: auto; padding: 0; margin-right: auto; }
-        
-        .user-badge { background: #e0e7ff; color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.85em; }
-        .app-logo { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 16px auto; border: 3px solid var(--border-color); }
-
-        input, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em; background-color: #f9fafb; }
-        input:focus { outline: none; border-color: var(--primary); background-color: #fff; }
-
-        .quick-amounts { display: flex; gap: 8px; margin-bottom: 12px; }
-        .quick-amounts button { background: #e5e7eb; color: var(--text-main); padding: 6px; font-size: 0.8em; width: auto; flex: 1; }
-        .quick-amounts button:hover { background: #d1d5db; }
-
-        button { background-color: var(--primary); color: white; border: none; padding: 12px 20px; cursor: pointer; font-weight: 600; border-radius: 8px; width: 100%; }
-        button:hover { background-color: var(--primary-hover); }
-        
-        .icon-btn { width: 44px; height: 44px; background-color: #fff; border: 1px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2em; cursor: pointer; padding: 0; flex-shrink: 0;}
-        .logout { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); width: auto; padding: 8px 12px; font-size: 0.8em; flex-shrink: 0;}
-
-        .tags-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .tag-pill { padding: 8px 12px; background: #f3f4f6; border-radius: 20px; font-size: 0.85em; cursor: pointer; border: 1px solid transparent; user-select: none;}
-        .tag-pill.selected { background: #e0e7ff; color: var(--primary); border-color: var(--primary); font-weight: bold; }
-        .badge-cat { padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: 700; text-transform: uppercase; background: #f3f4f6; color: #374151; display: inline-block; margin-top: 4px; margin-right: 4px;}
-        
-        .layout-container { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; width: 100%; }
-        .left-panel { flex: 1; min-width: 320px; }
-        .right-panel { flex: 2; min-width: 450px; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; color: var(--text-muted); font-size: 0.75em; border-bottom: 2px solid var(--border-color); }
-        td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); }
-        tbody tr { cursor: pointer; transition: background-color 0.2s; }
-        tbody tr:hover { background-color: #f0fdf4; }
-
-        .action-btn { width: auto; padding: 6px 10px; font-size: 1.1em; border-radius: 6px; background-color: transparent;}
-        .delete { color: var(--danger); }
-        .delete:hover { background-color: #fee2e2; }
-        
-        .balance { font-size: 2em; font-weight: 800; text-align: center; margin: 15px 0; }
-        .totals { display: flex; justify-content: space-around; background: #f8fafc; padding: 16px; border-radius: 12px; margin-bottom: 10px; }
-        .debt-text { font-weight: 600; display: inline-block; margin-top: 4px; }
-        
-        .total-combined { font-size: 1.2em; font-weight: 700; color: var(--text-main); margin-top: 15px; margin-bottom: 20px; padding: 10px; background: #e0e7ff; border-radius: 8px; }
-        .global-warning { display: none; background: #fee2e2; color: var(--danger); padding: 12px; border-radius: 8px; font-size: 0.9em; font-weight: 600; margin-bottom: 15px; border: 1px solid #f87171; }
-
-        #toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px; border-radius: 8px; color: white; font-weight: 600; transform: translateY(100px); transition: transform 0.3s; z-index: 5000; }
-        #toast.show { transform: translateY(0); }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(2px); }
-        .modal-content { background: white; max-width: 400px; margin: 5vh auto; padding: 24px; border-radius: 16px; max-height: 90vh; overflow-y: auto; width: 90%; }
-        
-        .filter-group { display: flex; gap: 8px; align-items: center; background: white; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .filter-group select { margin: 0; padding: 5px; font-size: 0.85em; width: auto; border: none; background: transparent; cursor: pointer; }
-        
-        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f9fafb; margin-bottom: 4px; border-radius: 6px; }
-
-        .view-section { display: none; width: 100%; }
-        .view-section.active { display: block; }
-        
-        .chart-container { height: 200px; display: flex; justify-content: center; margin-bottom: 15px; cursor: pointer; }
-        .clickable-total { cursor: pointer; text-decoration: underline; color: var(--primary); }
-        
-        .version-badge { position: fixed; bottom: 10px; left: 10px; font-size: 0.7em; color: var(--text-muted); z-index: 1000; font-weight: bold; background: rgba(255,255,255,0.7); padding: 2px 6px; border-radius: 4px;}
-
-        .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-top: 0; margin-bottom: 0; }
-        .accordion-icon { font-size: 1.2em; transition: transform 0.3s; }
-        .accordion-icon.open { transform: rotate(180deg); }
-        .accordion-content { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 1000px; }
-
-        @media (max-width: 768px) {
-            #main-content { padding: 15px; }
-            .card { padding: 15px; }
-            .layout-container { gap: 15px; }
-            
-            #sidebar { position: fixed; top: 0; left: 0; height: 100%; z-index: 4000; transform: translateX(-100%); width: 260px; box-shadow: none; transition: transform 0.3s ease; }
-            #sidebar.open { transform: translateX(0); box-shadow: 2px 0 12px rgba(0,0,0,0.4); }
-            
-            .hamburger-btn { display: block !important; padding: 5px 10px; margin-right: auto !important; }
-            .close-sidebar-btn { display: block !important; padding: 5px; }
-            
-            .header { flex-wrap: wrap; justify-content: flex-end; margin-bottom: 15px; }
-            .filter-group { order: 5; width: 100%; margin-top: 15px; margin-left: 0 !important; justify-content: center; background: #e5e7eb; }
-            #logged-user-display { display: none; } 
-            
-            .layout-container { flex-direction: column; }
-            .right-panel, .left-panel { min-width: 100%; }
-
-            .accordion-content { max-height: 0; padding-top: 0; }
-            .accordion-content.open { max-height: 1000px; padding-top: 15px; }
-            .card.left-panel { padding-bottom: 15px; }
-            
-            .totals { flex-direction: column; gap: 8px; }
+        .board-ghost {
+            opacity: 0.3 !important;
         }
     </style>
 </head>
-<body>
+<body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden relative">
 
-    <!-- INDICADOR DE VERSIÓN -->
-    <div class="version-badge">v2.4</div>
-
-    <div id="toast"></div>
-
-    <div id="loading-screen">
-        <img src="logo.jpg" alt="Cargando" class="spinner">
-        <h3 style="color: var(--text-muted);">Ingresando a Control de Gastos Priel</h3>
+    <div id="toast-back" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-[200]">
+        Presiona atrás de nuevo para salir
     </div>
 
-    <div id="mobile-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3999;" onclick="toggleSidebar()"></div>
-
-    <div id="login-container" class="card">
-        <h2 style="margin-bottom: 15px;">Control de Gastos Priel</h2>
-        <img src="logo.jpg" alt="Logo" class="app-logo">
-        <form onsubmit="event.preventDefault(); window.ejecutarLogin();">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Contraseña" required>
-            <button type="submit" id="btn-login">Ingresar</button>
-            <p id="login-error" class="error-msg"></p>
-        </form>
+    <div id="loading-screen" class="absolute inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
+        <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <h2 class="text-sm font-bold text-slate-400 tracking-widest uppercase">Cargando Priel Notas...</h2>
     </div>
 
-    <div id="app-wrapper">
-        <nav id="sidebar">
-            <div class="sidebar-header">
-                <h3 style="margin:0;">Control de Gastos Priel</h3>
-                <button class="close-sidebar-btn" onclick="toggleSidebar()">✖</button>
+    <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] p-8 rounded-xl border border-slate-800 shadow-2xl w-full max-w-sm flex flex-col gap-4">
+            <h2 class="text-xl font-bold text-slate-100 text-center mb-2">Ingresar a Priel Notas</h2>
+            <input type="email" id="email" placeholder="Correo electrónico" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500 w-full">
+            <input type="password" id="password" placeholder="Contraseña" class="bg-[#15181e] border border-slate-700 text-slate-200 p-3 rounded-lg outline-none focus:border-blue-500 w-full">
+            <button onclick="login()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium p-3 rounded-lg transition-colors mt-2">Iniciar Sesión</button>
+            <p id="auth-error" class="text-red-400 text-sm text-center hidden"></p>
+        </div>
+    </div>
+
+    <div id="modal-gestor-etiquetas" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Etiquetas</h3>
+                <button onclick="cerrarGestorEtiquetas()" class="text-slate-400 hover:text-red-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
-            <ul class="sidebar-menu">
-                <li id="nav-gastos" class="active" onclick="switchView('gastos')">🏠 Control de Gastos</li>
-                <li id="nav-estadisticas" onclick="switchView('estadisticas')">📈 Estadísticas</li>
-            </ul>
-        </nav>
-
-        <div id="main-content">
-            <div class="header">
-                <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
-                
-                <div class="filter-group" style="margin-right: auto; margin-left: 10px;">
-                    <span style="font-size: 0.85em; font-weight: 600;">Mes:</span>
-                    <select id="filter-month" onchange="applyFilters()">
-                        <option value="todos">Todos</option>
-                        <option value="0">Enero</option><option value="1">Febrero</option>
-                        <option value="2">Marzo</option><option value="3">Abril</option>
-                        <option value="4">Mayo</option><option value="5">Junio</option>
-                        <option value="6">Julio</option><option value="7">Agosto</option>
-                        <option value="8">Septiembre</option><option value="9">Octubre</option>
-                        <option value="10">Noviembre</option><option value="11">Diciembre</option>
-                    </select>
+            <div class="p-4 bg-[#1a1d24] flex flex-col gap-4">
+                <div class="flex gap-2">
+                    <input type="text" id="nueva-etiqueta-nombre" placeholder="Nombre nueva etiqueta..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
+                    <button onclick="crearEtiquetaBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
                 </div>
-
-                <span class="user-badge" id="logged-user-display"></span>
-                <button class="icon-btn" onclick="openSettings()">⚙️</button>
-                <button class="logout" onclick="logout()">Salir</button>
+                <div id="lista-gestor-etiquetas" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
+        </div>
+    </div>
 
-            <div id="view-gastos" class="view-section active">
-                
-                <div class="layout-container">
-                    
-                    <!-- NUEVO GASTO -->
-                    <div class="card left-panel" style="margin-bottom: 0;">
-                        <h3 class="accordion-header" onclick="toggleAccordion('expense-form-container')">
-                            Nuevo Gasto <span id="expense-form-icon" class="accordion-icon">▼</span>
-                        </h3>
-                        <div id="expense-form-container" class="accordion-content">
-                            <form id="expense-form" style="margin-top: 15px;">
-                                <label>Fecha de Carga</label>
-                                <input type="date" id="date" required>
-
-                                <label>Descripción</label>
-                                <input type="text" id="desc" placeholder="¿En qué gastaron?" required oninput="smartSuggest(this.value, 'new')">
-                                
-                                <label>Monto</label>
-                                <input type="text" inputmode="decimal" id="amount" placeholder="$ 0,00" required oninput="formatCurrency(this)">
-                                
-                                <div class="quick-amounts">
-                                    <button type="button" onclick="addAmount(5000, 'amount')">+5k</button>
-                                    <button type="button" onclick="addAmount(10000, 'amount')">+10k</button>
-                                    <button type="button" onclick="addAmount(20000, 'amount')">+20k</button>
-                                </div>
-
-                                <label>Categorías</label>
-                                <div id="category-pills-new" class="tags-container"></div>
-
-                                <label>Pagó</label>
-                                <select id="payer">
-                                    <option value="Ari">Ari</option>
-                                    <option value="Gi">Gi</option>
-                                </select>
-
-                                <button type="submit" id="submit-btn">Guardar Gasto</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- BALANCE -->
-                    <div class="card right-panel" style="text-align: center; margin-bottom: 0;">
-                        <div id="global-debt-warning" class="global-warning"></div>
-
-                        <h3 style="margin-top: 0; color: var(--text-muted); font-size: 1.1em; text-transform: uppercase;">Balance del Mes</h3>
-                        <div id="balance-display" class="balance">$0,00</div>
-                        
-                        <!-- GASTO REAL (NETO) -->
-                        <h4 style="margin: 25px 0 5px 0; color: var(--text-muted);">Gasto Real Neto (Excluye Liquidaciones)</h4>
-                        <div class="totals" style="background: #eef2ff;">
-                            <span id="net-ari" class="clickable-total" onclick="openBreakdownNet('Ari')">Gasto Neto Ari: $0</span>
-                            <span id="net-gi" class="clickable-total" onclick="openBreakdownNet('Gi')">Gasto Neto Gi: $0</span>
-                        </div>
-                        <div id="net-combined" class="total-combined" style="margin-top: 10px;">Total Gasto Real: $0</div>
-                        <div class="chart-container">
-                            <canvas id="netPieChart"></canvas>
-                        </div>
-
-                        <!-- FLUJO DE CAJA BRUTO -->
-                        <hr style="border:0; border-top: 1px solid var(--border-color); margin: 25px 0;">
-                        <h4 style="margin: 15px 0 5px 0; color: var(--text-muted);">Flujo de Caja (Dinero adelantado)</h4>
-                        <div class="totals">
-                            <span id="cash-ari" class="clickable-total" onclick="openBreakdownCashFlow('Ari')">Adelantó Ari: $0</span>
-                            <span id="cash-gi" class="clickable-total" onclick="openBreakdownCashFlow('Gi')">Adelantó Gi: $0</span>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="homePieChart"></canvas>
-                        </div>
-
-                        <button class="settle" style="margin-top:20px;" onclick="settleUp()">Liquidar Cuentas del Mes</button>
-                    </div>
-                </div>
-
-                <!-- HISTORIAL -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <h3 style="margin:0;">Historial</h3>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table>
-                            <thead><tr><th>Gasto</th><th>Monto</th><th>Distribución</th><th></th></tr></thead>
-                            <tbody id="expense-list"></tbody>
-                        </table>
-                    </div>
-                </div>
-
+    <div id="modal-gestor-tableros" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Tableros</h3>
+                <button onclick="cerrarGestorTableros()" class="text-slate-400 hover:text-red-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
+            <div class="p-4 bg-[#1a1d24] flex flex-col gap-4">
+                <div class="flex gap-2">
+                    <input type="text" id="nuevo-tablero-nombre" placeholder="Nombre de tablero..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
+                    <button onclick="crearTableroBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
+                </div>
+                <div id="lista-gestor-tableros" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
 
-            <!-- ESTADÍSTICAS -->
-            <div id="view-estadisticas" class="view-section">
-                <div class="card">
-                    <h2>Histórico de Gastos (Real)</h2>
-                    <p style="color:var(--text-muted); margin-bottom: 20px;">Comparativa mensual del gasto real neto por cada uno (excluye liquidaciones).</p>
-                    <div style="height: 400px; width: 100%;">
-                        <canvas id="statsBarChart"></canvas>
+    <div id="modal-crear" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nueva Nota</h3>
+                    <div class="flex items-center gap-3">
+                        <select id="tablero-crear" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500"></select>
+                        <button onclick="cerrarModalCrear()" class="text-slate-400 hover:text-red-400 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
                 </div>
-
-                <!-- GASTOS POR CATEGORÍA -->
-                <div class="card">
-                    <h2>Gastos por Categoría</h2>
-                    <p style="color:var(--text-muted); margin-bottom: 20px;">Distribución del total gastado en el mes seleccionado (excluye liquidaciones).</p>
-                    <div class="chart-container" style="height: 350px;">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
+                <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
+            </div>
+            <div class="p-5 bg-[#1a1d24]"><div id="editor-container" class="text-slate-200"></div></div>
+            <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-crear"></div>
+                <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
+                    <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
+                    <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODALES -->
-    <div id="breakdown-modal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 500px;">
-            <h3 id="breakdown-title" style="margin-top:0;">Desglose</h3>
-            <div style="overflow-x:auto; max-height: 50vh;">
-                <table style="width: 100%; text-align: left;">
-                    <thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th></tr></thead>
-                    <tbody id="breakdown-list"></tbody>
-                </table>
+    <!-- MODAL EDICIÓN CON INDICADOR DE AUTOGUARDADO -->
+    <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Editar Nota</h3>
+                        <span id="indicador-autoguardado" class="text-[11px] text-slate-400 font-mono transition-opacity duration-300"></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="tablero-editar" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-2 py-1 outline-none focus:border-blue-500"></select>
+                        <button onclick="intentarCerrarModalEdicion()" class="text-slate-400 hover:text-red-400 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="text" id="titulo-editar" placeholder="Título de la nota..." class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
-            <button type="button" style="background:transparent; color:var(--text-muted); margin-top:15px;" onclick="closeBreakdown()">Cerrar</button>
+            <div class="p-5 bg-[#1a1d24]"><div id="edit-editor-container" class="text-slate-200"></div></div>
+            <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-editar"></div>
+                <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
+                    <button onclick="intentarCerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
+                    <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar Cambios</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="edit-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Editar Gasto</h3>
-            <form id="edit-expense-form">
-                <input type="hidden" id="edit-id">
-                <label>Fecha de Carga</label>
-                <input type="date" id="edit-date" required>
-                
-                <label>Descripción</label>
-                <input type="text" id="edit-desc" required oninput="smartSuggest(this.value, 'edit')">
-                
-                <label>Monto</label>
-                <input type="text" inputmode="decimal" id="edit-amount" placeholder="$ 0,00" required oninput="formatCurrency(this)">
-
-                <label>Categorías</label>
-                <div id="category-pills-edit" class="tags-container"></div>
-
-                <label>Pagó</label>
-                <select id="edit-payer">
-                    <option value="Ari">Ari</option>
-                    <option value="Gi">Gi</option>
-                </select>
-
-                <button type="submit" id="edit-submit-btn">Actualizar Gasto</button>
-                <button type="button" style="background:transparent; color:var(--text-muted); margin-top:8px;" onclick="closeEditModal()">Cancelar</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="settings-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Ajustes Generales</h3>
-            <label>Porcentaje a cargo de Ari (%)</label>
-            <input type="number" id="default-ari-pct" style="margin-bottom: 20px;">
-            
-            <h3 style="margin-bottom: 10px;">Gestionar Categorías</h3>
-            <div id="settings-cat-list" style="margin-bottom: 15px;"></div>
-            
-            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <input type="text" id="new-category" placeholder="Nueva categoría..." style="margin: 0;">
-                <button type="button" onclick="addCategory()" style="width: auto;">Agregar</button>
+    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Priel Notas
+                </h1>
+                <span id="app-version-badge" class="text-[11px] font-mono bg-blue-950/60 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded">v2.2.2</span>
             </div>
-
-            <button id="btn-save-config" onclick="saveDefaultPct()">Guardar Todo</button>
-            <button onclick="closeSettings()" style="background:transparent; color:var(--text-muted); margin-top:10px;">Cerrar</button>
+            <div class="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end flex-wrap">
+                <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium">Cerrar Sesión</button>
+                <button onclick="abrirGestorTableros()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Tableros</button>
+                <button onclick="abrirGestorEtiquetas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Etiquetas</button>
+                <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Nueva Nota</button>
+            </div>
         </div>
+
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-2 gap-3 shrink-0">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider hidden md:block">TABLEROS</h2>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <input type="text" id="buscador" oninput="renderizarUI()" placeholder="Buscar..." class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-full md:w-48">
+                <select id="filtro-etiqueta" onchange="renderizarUI()" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 flex-1 md:flex-none"></select>
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-300 bg-[#1a1d24] border border-slate-700 px-3 py-1.5 rounded-lg"><input type="checkbox" id="filtro-urgente" onchange="renderizarUI()" class="w-4 h-4 accent-red-500 rounded"> Urgentes</label>
+                <button onclick="limpiarFiltros()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium">Limpiar</button>
+            </div>
+        </div>
+
+        <div id="tableros-container" class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto"></div>
     </div>
 
     <script>
-        const supabaseUrl = 'https://ruefngsgxvbhxkgiddnn.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZWZuZ3NneHZiaHhrZ2lkZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzIxMzksImV4cCI6MjA5MjAwODEzOX0.BnhJNgpR83qcJSyveAZatI_WGhfJQjrlmr81ymf1SMc';
+        const CURRENT_VERSION = 'v2.2.2';
+        const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        let defaultAriPct = 50; 
-        let expenses = [];
-        let currentUserAlias = 'Ari';
-        
-        let availableCategories = ["Supermercado", "Servicios", "Salidas", "Auto/Transporte", "Hogar", "Varios", "Liquidación"];
-        let selectedCategoriesNew = [];
-        let selectedCategoriesEdit = [];
+        let notas = [];
+        let etiquetasBD = [];
+        let tablerosBD = [];
+        let user = null;
+        let idNotaEditando = null;
+        let ordenesTableros = {}; 
+        let sortablesInstances = [];
 
-        let homePieChartInstance = null;
-        let netPieChartInstance = null;
-        let statsBarChartInstance = null;
-        let categoryChartInstance = null;
+        let timerAutoGuardado = null;
+        let estadoUltimoGuardado = '';
 
-        // --- FUNCIONES DE FORMATEO DE MONEDA ---
-        function formatCurrency(input) {
-            // Elimina todo lo que no sea dígito o coma
-            let value = input.value.replace(/[^0-9,]/g, '');
-            if (!value) {
-                input.value = '';
-                return;
-            }
+        const quillConfig = {
+            theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
+            modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{'list': 'ordered'}, {'list': 'bullet'}], ['clean'] ] }
+        };
+        var quill = new Quill('#editor-container', quillConfig);
+        var editQuill = new Quill('#edit-editor-container', quillConfig);
+
+        // INTERCEPTOR DE PORTAPAPELES
+        document.addEventListener('copy', function(e) {
+            const selection = window.getSelection();
+            if (!selection || !selection.rangeCount) return;
+
+            const anchorNode = selection.anchorNode;
+            if (!anchorNode) return;
+            const editorEl = anchorNode.nodeType === 1 ? anchorNode.closest('.ql-editor') : anchorNode.parentElement?.closest('.ql-editor');
+            if (!editorEl) return;
+
+            const range = selection.getRangeAt(0);
+            const fragment = range.cloneContents();
             
-            // Permitir solo una coma dividiendo en partes
-            const parts = value.split(',');
-            let intPart = parts[0];
-            
-            // Eliminar ceros a la izquierda, a menos que sea un solo '0'
-            if (intPart.length > 1) {
-                intPart = intPart.replace(/^0+/, '');
-                if(intPart === '') intPart = '0';
-            }
-            
-            // Agregar puntos de miles
-            intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            
-            let result = '$ ' + intPart;
-            // Si hay decimales (se tipeó una coma), permitir hasta 2 dígitos
-            if (parts.length > 1) {
-                result += ',' + parts[1].substring(0, 2);
-            }
-            
-            input.value = result;
-        }
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.whiteSpace = 'pre-wrap';
+            tempDiv.appendChild(fragment);
 
-        function parseCurrency(str) {
-            if (!str) return 0;
-            // Eliminar signos, espacios y puntos, cambiar coma por punto
-            let clean = str.replace(/[^0-9,]/g, '').replace(',', '.');
-            return parseFloat(clean) || 0;
-        }
+            tempDiv.querySelectorAll('.ql-align-center').forEach(el => el.style.textAlign = 'center');
+            tempDiv.querySelectorAll('.ql-align-right').forEach(el => el.style.textAlign = 'right');
+            tempDiv.querySelectorAll('.ql-align-justify').forEach(el => el.style.textAlign = 'justify');
 
-        function formatDisplayCurrency(num) {
-            return '$ ' + Number(num).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-        }
-        // ---------------------------------------
+            tempDiv.querySelectorAll('p').forEach(p => {
+                const div = document.createElement('div');
+                div.innerHTML = p.innerHTML;
+                div.style.cssText = p.style.cssText;
+                div.style.margin = '0';
+                div.style.padding = '0';
+                p.parentNode.replaceChild(div, p);
+            });
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            sidebar.classList.toggle('open');
+            document.body.appendChild(tempDiv);
             
-            if (sidebar.classList.contains('open') && window.innerWidth <= 768) {
-                overlay.style.display = 'block';
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
+            const htmlContent = tempDiv.innerHTML;
+            const plainText = tempDiv.innerText;
 
-        function toggleAccordion(id) {
-            if (window.innerWidth <= 768) {
-                const content = document.getElementById(id);
-                const icon = document.getElementById(id.replace('-container', '-icon'));
-                content.classList.toggle('open');
-                icon.classList.toggle('open');
-            }
-        }
+            document.body.removeChild(tempDiv);
 
-        function switchView(view) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${view}`).classList.add('active');
-            document.getElementById(`nav-${view}`).classList.add('active');
-            
-            if (window.innerWidth <= 768) toggleSidebar(); 
-            if (view === 'estadisticas') renderStatsChart();
-        }
-
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                const email = session.user.email.toLowerCase();
-                currentUserAlias = (email.includes('pablo') || email.includes('ari') || email.includes('bianchino')) ? 'Ari' : 'Gi';
-                document.getElementById('logged-user-display').textContent = session.user.email;
-                document.getElementById('payer').value = currentUserAlias;
-                showApp();
-            } else { 
-                showLogin(); 
+            if (e.clipboardData) {
+                e.clipboardData.setData('text/html', htmlContent);
+                e.clipboardData.setData('text/plain', plainText);
+                e.preventDefault();
             }
         });
 
-        window.ejecutarLogin = async () => {
+        const paletas = [
+            'bg-purple-900/50 text-purple-300 border-purple-700/50',
+            'bg-blue-900/50 text-blue-300 border-blue-700/50',
+            'bg-green-900/50 text-green-300 border-green-700/50',
+            'bg-teal-900/50 text-teal-300 border-teal-700/50',
+            'bg-indigo-900/50 text-indigo-300 border-indigo-700/50',
+            'bg-orange-900/50 text-orange-300 border-orange-700/50',
+            'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
+            'bg-pink-900/50 text-pink-300 border-pink-700/50'
+        ];
+
+        let backPressed = false;
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function(event) {
+            if (!backPressed) {
+                backPressed = true; history.pushState(null, null, location.href);
+                const toast = document.getElementById('toast-back');
+                toast.classList.remove('opacity-0');
+                setTimeout(() => { toast.classList.add('opacity-0'); backPressed = false; }, 2000);
+            } else { history.back(); }
+        });
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                user = session.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                await inicializarDatos();
+            } else {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
+        }
+
+        async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const btn = document.getElementById('btn-login');
-            btn.textContent = 'Ingresando...'; btn.disabled = true;
-
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) { 
-                document.getElementById('login-error').textContent = "Error: " + error.message; 
-                document.getElementById('login-error').style.display = 'block';
-                btn.textContent = 'Ingresar'; btn.disabled = false;
-            }
-        };
-
-        const logout = () => supabaseClient.auth.signOut();
-
-        async function showApp() {
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('loading-screen').style.display = 'flex';
-            await initApp();
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('app-wrapper').style.display = 'flex';
-        }
-
-        function showLogin() {
-            document.getElementById('app-wrapper').style.display = 'none';
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('login-container').style.display = 'block';
-            document.getElementById('btn-login').textContent = 'Ingresar'; 
-            document.getElementById('btn-login').disabled = false;
-        }
-
-        async function initApp() {
-            document.getElementById('filter-month').value = new Date().getMonth().toString();
-            
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
-            
-            await Promise.all([loadConfig(), fetchExpenses()]);
-        }
-
-        function applyFilters() {
-            renderList();
-            calculateBalance();
-            renderHomeChart();
-            if (document.getElementById('view-estadisticas').classList.contains('active')) {
-                renderStatsChart();
-            }
-        }
-
-        function getFilteredExpenses() {
-            const month = document.getElementById('filter-month').value;
-            if (month === 'todos') return expenses;
-            return expenses.filter(ex => new Date(ex.created_at).getMonth().toString() === month);
-        }
-
-        async function loadConfig() {
-            const { data } = await supabaseClient.from('configuracion').select('*').eq('id', 1).single();
-            if (data) { 
-                defaultAriPct = parseFloat(data.porcentaje_ari); 
-                document.getElementById('default-ari-pct').value = defaultAriPct; 
-                if (data.categorias) availableCategories = data.categorias;
-            }
-            if (!availableCategories.includes("Liquidación")) availableCategories.push("Liquidación");
-            renderCategoryPills('new');
-        }
-
-        async function fetchExpenses() {
-            const { data } = await supabaseClient.from('gastos').select('*').order('created_at', { ascending: false });
-            expenses = data || [];
-            applyFilters();
-            if (document.getElementById('view-estadisticas').classList.contains('active')) renderStatsChart();
-        }
-
-        function renderCategoryPills(context) {
-            const containerId = context === 'new' ? 'category-pills-new' : 'category-pills-edit';
-            const selectedArray = context === 'new' ? selectedCategoriesNew : selectedCategoriesEdit;
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            
-            availableCategories.forEach(cat => {
-                const pill = document.createElement('div');
-                pill.className = `tag-pill ${selectedArray.includes(cat) ? 'selected' : ''}`;
-                pill.textContent = cat;
-                pill.onclick = () => toggleCategory(cat, context);
-                container.appendChild(pill);
-            });
-        }
-
-        function toggleCategory(cat, context) {
-            let selectedArray = context === 'new' ? selectedCategoriesNew : selectedCategoriesEdit;
-            if (selectedArray.includes(cat)) {
-                selectedArray = selectedArray.filter(c => c !== cat);
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                const errEl = document.getElementById('auth-error');
+                errEl.innerText = error.message; errEl.classList.remove('hidden');
             } else {
-                selectedArray.push(cat);
+                user = data.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                await inicializarDatos();
             }
-            if (context === 'new') selectedCategoriesNew = selectedArray;
-            else selectedCategoriesEdit = selectedArray;
-            
-            renderCategoryPills(context);
         }
 
-        function smartSuggest(val, context) {
-            const v = val.toLowerCase();
-            let arr = [];
-            if (v.includes('super') || v.includes('coto') || v.includes('dia')) arr.push('Supermercado');
-            if (v.includes('luz') || v.includes('agua') || v.includes('gas') || v.includes('internet')) arr.push('Servicios');
-            if (v.includes('pizza') || v.includes('cine') || v.includes('cerveza')) arr.push('Salidas');
-            if (v.includes('nafta') || v.includes('uber') || v.includes('peaje')) arr.push('Auto/Transporte');
-            
-            if (context === 'new') selectedCategoriesNew = arr;
-            else selectedCategoriesEdit = arr;
-            
-            renderCategoryPills(context);
-        };
-
-        function renderSettingsCategories() {
-            const container = document.getElementById('settings-cat-list');
-            container.innerHTML = '';
-            availableCategories.forEach(cat => {
-                if(cat === "Liquidación") return;
-                const div = document.createElement('div');
-                div.className = 'setting-item';
-                div.innerHTML = `<span>${cat}</span><button type="button" onclick="removeCategory('${cat}')" style="width:auto; padding:4px 10px; background:var(--danger); font-size:0.8em;">Borrar</button>`;
-                container.appendChild(div);
-            });
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            user = null; notas = []; etiquetasBD = []; tablerosBD = [];
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('email').value = ''; document.getElementById('password').value = '';
         }
 
-        function addCategory() {
-            const input = document.getElementById('new-category');
-            const val = input.value.trim();
-            if (val && !availableCategories.includes(val)) {
-                availableCategories.push(val);
+        async function inicializarDatos() {
+            const resTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
+            if (!resTab.error) {
+                tablerosBD = resTab.data;
+                if (tablerosBD.length === 0) {
+                    const iniciales = [
+                        { nombre: 'todo', orden: 0, user_id: user.id },
+                        { nombre: 'general', orden: 1, user_id: user.id },
+                        { nombre: 'cerrado', orden: 2, user_id: user.id }
+                    ];
+                    await supabaseClient.from('tableros').insert(iniciales);
+                    const refreshTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
+                    tablerosBD = refreshTab.data;
+                }
+            }
+            tablerosBD.forEach(t => { if (ordenesTableros[t.nombre] === undefined) ordenesTableros[t.nombre] = 0; });
+            renderizarMenuTableros();
+
+            const resEtq = await supabaseClient.from('etiquetas').select('*');
+            if (!resEtq.error) {
+                etiquetasBD = resEtq.data;
+                if (etiquetasBD.length === 0) {
+                    const iniciales = [
+                        { nombre: 'Mandala', color: paletas[0], user_id: user.id },
+                        { nombre: 'Show', color: paletas[1], user_id: user.id },
+                        { nombre: 'Rutina', color: paletas[2], user_id: user.id }
+                    ];
+                    await supabaseClient.from('etiquetas').insert(iniciales);
+                    const refresh = await supabaseClient.from('etiquetas').select('*');
+                    etiquetasBD = refresh.data;
+                }
+            }
+            renderizarEtiquetasDOM();
+
+            const resNotas = await supabaseClient.from('notas').select('*');
+            if (!resNotas.error) { notas = resNotas.data; renderizarUI(); }
+            document.getElementById('loading-screen').classList.add('hidden');
+        }
+
+        function abrirGestorTableros() { document.getElementById('modal-gestor-tableros').classList.remove('hidden'); }
+        function cerrarGestorTableros() { document.getElementById('modal-gestor-tableros').classList.add('hidden'); }
+
+        function renderizarMenuTableros() {
+            const lista = document.getElementById('lista-gestor-tableros');
+            lista.innerHTML = tablerosBD.map(t => `
+                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
+                    <span class="text-sm font-medium text-slate-300 px-2 uppercase tracking-wide">${t.nombre}</span>
+                    <div class="flex gap-2">
+                        <button onclick="editarTableroBD('${t.id}', '${t.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
+                        <button onclick="eliminarTableroBD('${t.id}', '${t.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const opts = tablerosBD.map(t => `<option value="${t.nombre}">${t.nombre.toUpperCase()}</option>`).join('');
+            if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = opts;
+            if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = opts;
+        }
+
+        async function crearTableroBD() {
+            const input = document.getElementById('nuevo-tablero-nombre');
+            const nombre = input.value.trim().toLowerCase();
+            if (!nombre || tablerosBD.some(t => t.nombre === nombre)) return;
+
+            const nuevo = { nombre, orden: tablerosBD.length, user_id: user.id };
+            const { data, error } = await supabaseClient.from('tableros').insert([nuevo]).select();
+            if (!error && data) {
+                tablerosBD.push(data[0]);
+                ordenesTableros[nombre] = 0;
                 input.value = '';
-                renderSettingsCategories();
-                renderCategoryPills('new');
+                renderizarMenuTableros(); renderizarUI();
             }
         }
 
-        function removeCategory(cat) {
-            if (confirm(`¿Borrar categoría "${cat}"?`)) {
-                availableCategories = availableCategories.filter(c => c !== cat);
-                selectedCategoriesNew = selectedCategoriesNew.filter(c => c !== cat);
-                renderSettingsCategories();
-                renderCategoryPills('new');
+        async function editarTableroBD(id, nombreAnterior) {
+            const nuevo = prompt("Nuevo nombre del tablero:", nombreAnterior);
+            if (!nuevo || nuevo.trim() === '' || nuevo.toLowerCase() === nombreAnterior) return;
+            const limpio = nuevo.trim().toLowerCase();
+
+            const { error } = await supabaseClient.from('tableros').update({ nombre: limpio }).eq('id', id);
+            if (!error) {
+                const idx = tablerosBD.findIndex(t => t.id === id);
+                if (idx > -1) tablerosBD[idx].nombre = limpio;
+
+                ordenesTableros[limpio] = ordenesTableros[nombreAnterior] || 0;
+                delete ordenesTableros[nombreAnterior];
+
+                const afectadas = notas.filter(n => n.tablero === nombreAnterior);
+                for (let nota of afectadas) {
+                    nota.tablero = limpio;
+                    await supabaseClient.from('notas').update({ tablero: limpio }).eq('id', nota.id);
+                }
+                renderizarMenuTableros(); renderizarUI();
             }
         }
 
-        function openSettings() { document.getElementById('settings-modal').style.display = 'block'; renderSettingsCategories(); }
-        function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-        
-        function showToast(msg, color = 'var(--success)') {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.style.background = color; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
-
-        const addAmount = (val, inputId) => {
-            const input = document.getElementById(inputId);
-            let current = parseCurrency(input.value);
-            current += val;
-            input.value = formatDisplayCurrency(current);
-        };
-
-        document.getElementById('expense-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (selectedCategoriesNew.length === 0) { showToast("Seleccioná al menos una categoría", 'var(--danger)'); return; }
-
-            const btn = document.getElementById('submit-btn');
+        async function eliminarTableroBD(id, nombre) {
+            if (tablerosBD.length <= 1) { alert("Debe quedar al menos un tablero."); return; }
             
-            const dateInput = document.getElementById('date').value;
-            const dateObj = new Date(`${dateInput}T12:00:00-03:00`);
+            const existeGeneral = tablerosBD.some(t => t.nombre === 'general' && t.id !== id);
+            const tableroReemplazo = existeGeneral ? 'general' : tablerosBD.find(t => t.id !== id).nombre;
 
-            // Parsear el string del formato nuevo
-            const finalAmount = parseCurrency(document.getElementById('amount').value);
+            if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al tablero "${tableroReemplazo}".`)) return;
 
-            const data = {
-                descripcion: document.getElementById('desc').value,
-                monto: finalAmount,
-                pagador: document.getElementById('payer').value,
-                categoria: selectedCategoriesNew.join(', '),
-                ari_pct: defaultAriPct,
-                created_at: dateObj.toISOString()
+            const { error } = await supabaseClient.from('tableros').delete().eq('id', id);
+            if (!error) {
+                tablerosBD = tablerosBD.filter(t => t.id !== id);
+                delete ordenesTableros[nombre];
+
+                const afectadas = notas.filter(n => n.tablero === nombre);
+                for (let nota of afectadas) {
+                    nota.tablero = tableroReemplazo;
+                    await supabaseClient.from('notas').update({ tablero: tableroReemplazo }).eq('id', nota.id);
+                }
+                renderizarMenuTableros(); renderizarUI();
+            }
+        }
+
+        function renderizarEtiquetasDOM() {
+            const select = document.getElementById('filtro-etiqueta');
+            const valorActual = select.value;
+            let opcionesHTML = `<option value="todas">Todas las etiquetas</option><option value="sin-etiqueta">Sin Etiqueta</option>`;
+            etiquetasBD.forEach(e => opcionesHTML += `<option value="${e.nombre}">${e.nombre}</option>`);
+            select.innerHTML = opcionesHTML;
+            if (etiquetasBD.some(e => e.nombre === valorActual) || valorActual === 'todas' || valorActual === 'sin-etiqueta') select.value = valorActual;
+
+            let htmlCrear = ''; let htmlEditar = '';
+            etiquetasBD.forEach(e => {
+                htmlCrear += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
+                htmlEditar += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
+            });
+
+            const especialCrear = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
+            const especialEditar = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
+
+            document.getElementById('contenedor-etiquetas-crear').innerHTML = htmlCrear + especialCrear;
+            document.getElementById('contenedor-etiquetas-editar').innerHTML = htmlEditar + especialEditar;
+
+            const listaGestor = document.getElementById('lista-gestor-etiquetas');
+            listaGestor.innerHTML = etiquetasBD.map(e => `
+                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
+                    <span class="text-sm font-medium ${e.color} px-2 py-0.5 rounded border">${e.nombre}</span>
+                    <div class="flex gap-2">
+                        <button onclick="editarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
+                        <button onclick="eliminarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function abrirGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.remove('hidden'); }
+        function cerrarGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.add('hidden'); }
+
+        async function crearEtiquetaBD() {
+            const input = document.getElementById('nueva-etiqueta-nombre');
+            const nombre = input.value.trim();
+            if (!nombre || etiquetasBD.some(e => e.nombre.toLowerCase() === nombre.toLowerCase())) return;
+            const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
+            const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre, color: colorRandom, user_id: user.id }]).select();
+            if (!error) { etiquetasBD.push(data[0]); input.value = ''; renderizarEtiquetasDOM(); renderizarUI(); }
+        }
+
+        async function editarEtiquetaBD(id, nombreAnterior) {
+            const limpio = prompt("Editar etiqueta:", nombreAnterior)?.trim();
+            if (!limpio || limpio === nombreAnterior) return;
+            const { error } = await supabaseClient.from('etiquetas').update({ nombre: limpio }).eq('id', id);
+            if (!error) {
+                etiquetasBD.find(e => e.id === id).nombre = limpio;
+                notas.filter(n => n.etiquetas?.includes(nombreAnterior)).forEach(async n => {
+                    n.etiquetas = n.etiquetas.map(e => e === nombreAnterior ? limpio : e);
+                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
+                });
+                renderizarEtiquetasDOM(); renderizarUI();
+            }
+        }
+
+        async function eliminarEtiquetaBD(id, nombre) {
+            if (!confirm(`¿Borrar "${nombre}"?`)) return;
+            const { error } = await supabaseClient.from('etiquetas').delete().eq('id', id);
+            if (!error) {
+                etiquetasBD = etiquetasBD.filter(e => e.id !== id);
+                notas.filter(n => n.etiquetas?.includes(nombre)).forEach(async n => {
+                    n.etiquetas = n.etiquetas.filter(e => e !== nombre);
+                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
+                });
+                renderizarEtiquetasDOM(); renderizarUI();
+            }
+        }
+
+        function abrirModalCrear() { document.getElementById('modal-crear').classList.remove('hidden'); setTimeout(() => quill.focus(), 100); }
+        function cerrarModalCrear() {
+            document.getElementById('modal-crear').classList.add('hidden');
+            quill.setContents([]); document.getElementById('titulo-crear').value = '';
+            document.querySelectorAll('.etiqueta-crear').forEach(cb => cb.checked = false);
+            if(document.getElementById('check-urgente-crear')) document.getElementById('check-urgente-crear').checked = false;
+        }
+
+        async function agregarNota() {
+            const textoPlano = quill.getText().trim();
+            const tituloInput = document.getElementById('titulo-crear').value.trim();
+            if (textoPlano === '' && tituloInput === '') return;
+
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
+            const isUrgente = document.getElementById('check-urgente-crear')?.checked;
+            
+            let tableroInicial = document.getElementById('tablero-crear').value || tablerosBD[0]?.nombre;
+            if (isUrgente) etiquetasSeleccionadas.push('Urgente');
+
+            const nueva = {
+                titulo: tituloInput || `Nota ${notas.length + 1}`, texto: quill.root.innerHTML,
+                tablero: tableroInicial, etiquetas: etiquetasSeleccionadas, orden: 0, user_id: user.id
             };
+            const { data, error } = await supabaseClient.from('notas').insert([nueva]).select();
+            if (!error && data) { notas.push(data[0]); renderizarUI(); cerrarModalCrear(); }
+        }
 
-            btn.disabled = true;
-            await supabaseClient.from('gastos').insert([data]);
-            
-            showToast("Gasto guardado");
-            document.getElementById('expense-form').reset();
-            document.getElementById('payer').value = currentUserAlias;
-            
-            const now = new Date();
-            document.getElementById('date').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            
-            selectedCategoriesNew = [];
-            renderCategoryPills('new');
-            
-            if (window.innerWidth <= 768) {
-                toggleAccordion('expense-form-container');
-            }
-            
-            await fetchExpenses();
-            btn.disabled = false;
-        };
+        async function eliminarNota(id, event) {
+            event.stopPropagation(); notas = notas.filter(n => n.id !== id); renderizarUI();
+            await supabaseClient.from('notas').delete().eq('id', id);
+        }
 
-        document.getElementById('edit-expense-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (selectedCategoriesEdit.length === 0) { showToast("Seleccioná al menos una categoría", 'var(--danger)'); return; }
+        function serializarEstadoEdicion() {
+            const titulo = document.getElementById('titulo-editar').value.trim();
+            const texto = editQuill.root.innerHTML;
+            const tablero = document.getElementById('tablero-editar').value;
+            const etiquetas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (document.getElementById('check-urgente-editar')?.checked) etiquetas.push('Urgente');
+            return JSON.stringify({ titulo, texto, tablero, etiquetas });
+        }
 
-            const btn = document.getElementById('edit-submit-btn');
-            const id = document.getElementById('edit-id').value;
-            const ex = expenses.find(x => x.id === id);
-            
-            const dateInput = document.getElementById('edit-date').value;
-            const dateObj = new Date(`${dateInput}T12:00:00-03:00`);
+        async function abrirModalEdicion(id) {
+            const { data: notaActualizada, error } = await supabaseClient.from('notas').select('*').eq('id', id).single();
+            if (error || !notaActualizada) { alert("Error: Nota no encontrada en el servidor."); return; }
 
-            const finalAmount = parseCurrency(document.getElementById('edit-amount').value);
+            const index = notas.findIndex(n => n.id === id);
+            if (index !== -1) notas[index] = notaActualizada;
+            renderizarUI();
 
-            const data = {
-                descripcion: document.getElementById('edit-desc').value,
-                monto: finalAmount,
-                pagador: document.getElementById('edit-payer').value,
-                categoria: selectedCategoriesEdit.join(', '),
-                ari_pct: ex.ari_pct,
-                created_at: dateObj.toISOString()
-            };
+            idNotaEditando = id;
+            document.getElementById('titulo-editar').value = notaActualizada.titulo || '';
+            document.getElementById('tablero-editar').value = notaActualizada.tablero;
+            editQuill.clipboard.dangerouslyPasteHTML(notaActualizada.texto || '');
 
-            btn.disabled = true;
-            await supabaseClient.from('gastos').update(data).eq('id', id);
-            
-            showToast("Gasto actualizado");
-            closeEditModal();
-            await fetchExpenses();
-            btn.disabled = false;
-        };
+            document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
+            if (document.getElementById('check-urgente-editar')) document.getElementById('check-urgente-editar').checked = false;
 
-        const editExpense = (id) => {
-            const ex = expenses.find(x => x.id === id);
-            document.getElementById('edit-id').value = ex.id;
-            document.getElementById('edit-desc').value = ex.descripcion;
-            
-            // Cargar monto formateado para edición
-            document.getElementById('edit-amount').value = formatDisplayCurrency(ex.monto);
-            
-            document.getElementById('edit-payer').value = ex.pagador;
-            
-            const d = new Date(ex.created_at);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            document.getElementById('edit-date').value = `${yyyy}-${mm}-${dd}`;
-            
-            selectedCategoriesEdit = ex.categoria.split(', ');
-            renderCategoryPills('edit');
+            notaActualizada.etiquetas?.forEach(etq => {
+                if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
+                else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
+            });
 
-            document.getElementById('edit-modal').style.display = 'block';
-        };
+            document.getElementById('indicador-autoguardado').innerText = '';
+            estadoUltimoGuardado = serializarEstadoEdicion();
 
-        const closeEditModal = () => {
-            document.getElementById('edit-modal').style.display = 'none';
-        };
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = setInterval(ejecutarAutoGuardadoSilencioso, 60000);
 
-        const deleteExpense = async (id) => {
-            if (confirm("¿Borrar gasto permanentemente?")) {
-                await supabaseClient.from('gastos').delete().eq('id', id);
-                showToast("Gasto eliminado", 'var(--danger)');
-                fetchExpenses();
-            }
-        };
+            document.getElementById('modal-edicion').classList.remove('hidden');
+        }
 
-        const settleUp = async () => {
-            const bal = calculateBalance(true); // Pasar true para obtener solo el valor de deuda
-            
-            if (bal === 0) {
-                showToast("No hay deudas para liquidar en este mes", 'var(--text-muted)');
+        function intentarCerrarModalEdicion() {
+            if (!idNotaEditando) {
+                cerrarModalEdicion();
                 return;
             }
 
-            if (confirm("¿Liquidar las deudas de este período y registrar el pago como un nuevo gasto?")) {
-                const filtered = getFilteredExpenses().filter(ex => !ex.liquidado);
-                const idsToUpdate = filtered.map(ex => ex.id);
-
-                if (idsToUpdate.length > 0) {
-                    const { error } = await supabaseClient.from('gastos').update({ liquidado: true }).in('id', idsToUpdate);
-                    if (error) {
-                        showToast("Error al liquidar", 'var(--danger)');
-                        return;
-                    }
+            const estadoActual = serializarEstadoEdicion();
+            if (estadoActual !== estadoUltimoGuardado) {
+                const salirSinGuardar = confirm("⚠️ Tienes cambios sin guardar.\n\n¿Estás seguro de que quieres salir y PERDER estas modificaciones?\n\n(Haz clic en 'Cancelar' si quieres seguir editando para poder guardar)");
+                if (!salirSinGuardar) {
+                    return; // Cancela el cierre, el usuario se queda en la nota
                 }
-
-                let payer = bal > 0 ? 'Gi' : 'Ari';
-                let amount = Math.abs(bal);
-                let ari_pct = bal > 0 ? 0 : 100; 
-                
-                let settleDate = new Date();
-                if (filtered.length > 0) {
-                    const dates = filtered.map(e => new Date(e.created_at).getTime());
-                    const maxDate = new Date(Math.max(...dates));
-                    settleDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 1, 0, 23, 59, 59);
-                }
-
-                const settlementData = {
-                    descripcion: 'Pago por Liquidación de Deudas',
-                    monto: amount,
-                    pagador: payer,
-                    categoria: 'Liquidación',
-                    ari_pct: ari_pct,
-                    liquidado: true,
-                    created_at: settleDate.toISOString()
-                };
-
-                await supabaseClient.from('gastos').insert([settlementData]);
-
-                showToast("Deudas liquidadas y pago registrado retroactivo");
-                fetchExpenses();
             }
-        };
+            cerrarModalEdicion();
+        }
 
-        // --- FUNCIONES DE DESGLOSE ---
-        const openBreakdownCashFlow = (person) => {
-            const list = document.getElementById('breakdown-list');
-            list.innerHTML = '';
-            let total = 0;
+        function cerrarModalEdicion() {
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = null;
+            document.getElementById('modal-edicion').classList.add('hidden');
+            idNotaEditando = null;
+            document.getElementById('titulo-editar').value = '';
+            document.getElementById('indicador-autoguardado').innerText = '';
+            editQuill.setContents([]);
+        }
 
-            getFilteredExpenses().forEach(ex => {
-                const montoTotal = Number(ex.monto);
-                const date = new Date(ex.created_at).toLocaleDateString('es-AR', {day:'2-digit', month:'short'});
-                
-                if (ex.categoria.includes('Liquidación')) {
-                    if (ex.pagador === person) {
-                        const tr = document.createElement('tr');
-                        tr.style.borderBottom = "1px solid var(--border-color)";
-                        tr.innerHTML = `<td style="font-size:0.8em; color:var(--text-muted); padding: 8px 0;">${date}</td>
-                                        <td style="font-weight:600; padding: 8px;">Pago de Liquidación</td>
-                                        <td style="font-weight:700; text-align:right; padding: 8px 0; color: var(--danger);">+${formatDisplayCurrency(montoTotal)}</td>`;
-                        list.appendChild(tr);
-                        total += montoTotal;
-                    } else {
-                        const tr = document.createElement('tr');
-                        tr.style.borderBottom = "1px solid var(--border-color)";
-                        tr.innerHTML = `<td style="font-size:0.8em; color:var(--text-muted); padding: 8px 0;">${date}</td>
-                                        <td style="font-weight:600; padding: 8px;">Recupero de Dinero</td>
-                                        <td style="font-weight:700; text-align:right; padding: 8px 0; color: var(--success);">${formatDisplayCurrency(-montoTotal)}</td>`;
-                        list.appendChild(tr);
-                        total -= montoTotal;
+        async function ejecutarAutoGuardadoSilencioso() {
+            if (!idNotaEditando) return;
+            const estadoActual = serializarEstadoEdicion();
+            if (estadoActual === estadoUltimoGuardado) return; 
+
+            const ind = document.getElementById('indicador-autoguardado');
+            ind.innerText = 'Guardando...';
+
+            const index = notas.findIndex(n => n.id === idNotaEditando);
+            if (index === -1) return;
+
+            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (esUrgente) etiquetasSeleccionadas.push('Urgente');
+
+            let tableroFinal = document.getElementById('tablero-editar').value;
+            const cambioTablero = notas[index].tablero !== tableroFinal;
+
+            const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+            const textoEditado = editQuill.root.innerHTML;
+
+            notas[index].titulo = tituloEditado;
+            notas[index].texto = textoEditado;
+            notas[index].etiquetas = etiquetasSeleccionadas;
+            notas[index].tablero = tableroFinal;
+
+            await supabaseClient.from('notas').update({ 
+                titulo: tituloEditado, texto: textoEditado, 
+                etiquetas: etiquetasSeleccionadas, tablero: tableroFinal 
+            }).eq('id', idNotaEditando);
+
+            estadoUltimoGuardado = estadoActual;
+            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            ind.innerText = `Autoguardado ${hora}`;
+
+            if (cambioTablero && ordenesTableros[tableroFinal] === 0) {
+                await actualizarOrdenLocalYBD(tableroFinal);
+            } else {
+                renderizarUI();
+            }
+        }
+
+        async function guardarEdicion() {
+            if (!idNotaEditando) return;
+            clearInterval(timerAutoGuardado);
+            timerAutoGuardado = null;
+
+            const index = notas.findIndex(n => n.id === idNotaEditando);
+            if (index === -1) return;
+
+            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
+            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
+            if (esUrgente) etiquetasSeleccionadas.push('Urgente');
+
+            let tableroFinal = document.getElementById('tablero-editar').value;
+            const cambioTablero = notas[index].tablero !== tableroFinal;
+            
+            notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+            notas[index].texto = editQuill.root.innerHTML;
+            notas[index].etiquetas = etiquetasSeleccionadas;
+            notas[index].tablero = tableroFinal;
+
+            renderizarUI();
+            await supabaseClient.from('notas').update({ 
+                titulo: notas[index].titulo, texto: notas[index].texto, 
+                etiquetas: notas[index].etiquetas, tablero: tableroFinal 
+            }).eq('id', idNotaEditando);
+
+            if(cambioTablero && ordenesTableros[tableroFinal] === 0) actualizarOrdenLocalYBD(tableroFinal);
+            cerrarModalEdicion();
+        }
+
+        function limpiarFiltros() { document.getElementById('filtro-etiqueta').value = 'todas'; document.getElementById('filtro-urgente').checked = false; document.getElementById('buscador').value = ''; renderizarUI(); }
+
+        function cambiarOrden(tableroNombre, event) {
+            event.stopPropagation();
+            ordenesTableros[tableroNombre] = ((ordenesTableros[tableroNombre] || 0) + 1) % 3;
+            renderizarUI();
+        }
+
+        function inicializarSortables() {
+            sortablesInstances.forEach(s => s.destroy());
+            sortablesInstances = [];
+
+            tablerosBD.forEach(tab => {
+                const col = document.getElementById(tab.nombre);
+                if (!col) return;
+
+                const instance = new Sortable(col, {
+                    group: 'notas-kanban',
+                    animation: 150,
+                    ghostClass: 'drop-ghost',
+                    disabled: (ordenesTableros[tab.nombre] || 0) !== 0,
+                    delay: 120,
+                    delayOnTouchOnly: true,
+                    onEnd: async function(evt) {
+                        const origenTablero = evt.from.id;
+                        const destinoTablero = evt.to.id;
+
+                        await actualizarOrdenLocalYBD(destinoTablero);
+                        if (origenTablero !== destinoTablero) {
+                            await actualizarOrdenLocalYBD(origenTablero);
+                        }
                     }
-                } else if (ex.pagador === person) {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = "1px solid var(--border-color)";
-                    tr.innerHTML = `<td style="font-size:0.8em; color:var(--text-muted); padding: 8px 0;">${date}</td>
-                                    <td style="font-weight:600; padding: 8px;">${ex.descripcion}</td>
-                                    <td style="font-weight:700; text-align:right; padding: 8px 0;">${formatDisplayCurrency(montoTotal)}</td>`;
-                    list.appendChild(tr);
-                    total += montoTotal;
+                });
+                sortablesInstances.push(instance);
+            });
+
+            const container = document.getElementById('tableros-container');
+            if (container) {
+                const boardSortable = new Sortable(container, {
+                    animation: 150,
+                    handle: '.board-header',
+                    ghostClass: 'board-ghost',
+                    delay: 120,
+                    delayOnTouchOnly: true,
+                    onEnd: async function() {
+                        await actualizarOrdenTableros();
+                    }
+                });
+                sortablesInstances.push(boardSortable);
+            }
+        }
+
+        function renderizarUI() {
+            const container = document.getElementById('tableros-container');
+            container.innerHTML = '';
+            
+            let notasPorTablero = {};
+            let contadores = {};
+            
+            tablerosBD.sort((a, b) => a.orden - b.orden);
+            tablerosBD.forEach(tab => { 
+                notasPorTablero[tab.nombre] = []; 
+                contadores[tab.nombre] = 0; 
+            });
+
+            const filtroUrgente = document.getElementById('filtro-urgente').checked;
+            const filtroEtiqueta = document.getElementById('filtro-etiqueta').value;
+            const term = document.getElementById('buscador').value.toLowerCase();
+            const tempDiv = document.createElement('div');
+            const hayFiltros = filtroUrgente || filtroEtiqueta !== 'todas' || term !== '';
+
+            notas.forEach(nota => {
+                if (filtroUrgente && !nota.etiquetas?.includes('Urgente')) return;
+                if (filtroEtiqueta === 'sin-etiqueta' && nota.etiquetas?.length > 0) return;
+                if (filtroEtiqueta !== 'todas' && filtroEtiqueta !== 'sin-etiqueta' && !nota.etiquetas?.includes(filtroEtiqueta)) return;
+
+                if (term) {
+                    tempDiv.innerHTML = nota.texto;
+                    if (!tempDiv.innerText.toLowerCase().includes(term) && !(nota.titulo || '').toLowerCase().includes(term) && !nota.etiquetas?.some(e => e.toLowerCase().includes(term))) return;
+                }
+
+                if(notasPorTablero[nota.tablero]) {
+                    notasPorTablero[nota.tablero].push(nota);
+                    contadores[nota.tablero]++;
                 }
             });
 
-            document.getElementById('breakdown-title').textContent = `Desglose Flujo de Caja: ${person} adelantó ${formatDisplayCurrency(total)}`;
-            document.getElementById('breakdown-modal').style.display = 'block';
-        };
+            tablerosBD.forEach(tab => {
+                let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
+                let tituloColor = 'text-slate-300';
+                if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
+                if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
 
-        const openBreakdownNet = (person) => {
-            const list = document.getElementById('breakdown-list');
-            list.innerHTML = '';
-            let total = 0;
+                let ordenEstado = ordenesTableros[tab.nombre] || 0;
+                let iconoOrden = '⇅';
+                let colorOrden = 'text-slate-500 hover:text-slate-300';
+                if (ordenEstado === 1) { iconoOrden = 'A-Z'; colorOrden = 'text-blue-400 font-black'; }
+                if (ordenEstado === 2) { iconoOrden = 'Z-A'; colorOrden = 'text-blue-400 font-black'; }
 
-            getFilteredExpenses().forEach(ex => {
-                if (!ex.categoria.includes('Liquidación')) {
-                    const amount = Number(ex.monto);
-                    let netAmount = 0;
-                    
-                    if (person === 'Ari') {
-                        netAmount = amount * (ex.ari_pct / 100);
-                    } else {
-                        netAmount = amount - (amount * (ex.ari_pct / 100));
-                    }
-
-                    if (netAmount > 0) {
-                        const date = new Date(ex.created_at).toLocaleDateString('es-AR', {day:'2-digit', month:'short'});
-                        const tr = document.createElement('tr');
-                        tr.style.borderBottom = "1px solid var(--border-color)";
-                        tr.innerHTML = `
-                            <td style="font-size:0.8em; color:var(--text-muted); padding: 8px 0;">${date}</td>
-                            <td style="font-weight:600; padding: 8px;">${ex.descripcion}</td>
-                            <td style="font-weight:700; text-align:right; padding: 8px 0;">${formatDisplayCurrency(netAmount)}</td>
-                        `;
-                        list.appendChild(tr);
-                        total += netAmount;
-                    }
-                }
-            });
-
-            document.getElementById('breakdown-title').textContent = `Desglose Gasto Real: ${person} consumió ${formatDisplayCurrency(total)}`;
-            document.getElementById('breakdown-modal').style.display = 'block';
-        };
-
-        const closeBreakdown = () => {
-            document.getElementById('breakdown-modal').style.display = 'none';
-        };
-
-        const renderList = () => {
-            const list = document.getElementById('expense-list');
-            list.innerHTML = '';
-
-            getFilteredExpenses().forEach(ex => {
-                const ariS = Number(ex.monto) * (ex.ari_pct / 100);
-                const giS = Number(ex.monto) - ariS;
-                const date = new Date(ex.created_at).toLocaleDateString('es-AR', {day:'2-digit', month:'short', year:'numeric'});
-                
-                let debtText = '';
-                if (ex.liquidado) {
-                    debtText = `<span class="debt-text" style="color: var(--text-muted); background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">Liquidado</span>`;
-                } else if ((ex.pagador === 'Ari' && ex.ari_pct === 100) || (ex.pagador === 'Gi' && ex.ari_pct === 0)) {
-                    debtText = `<span class="debt-text" style="color: var(--text-muted);">Sin deuda generada</span>`;
-                } else if (ex.pagador === 'Ari') {
-                    const color = currentUserAlias === 'Ari' ? 'var(--success)' : 'var(--danger)';
-                    debtText = `<span class="debt-text" style="color: ${color};">Gi debe a Ari: ${formatDisplayCurrency(giS)}</span>`;
-                } else {
-                    const color = currentUserAlias === 'Ari' ? 'var(--danger)' : 'var(--success)';
-                    debtText = `<span class="debt-text" style="color: ${color};">Ari debe a Gi: ${formatDisplayCurrency(ariS)}</span>`;
-                }
-
-                const catBadges = ex.categoria.split(', ').map(c => `<span class="badge-cat">${c}</span>`).join('');
-                
-                const isLiquidacion = ex.categoria.includes('Liquidación');
-                let displayDesc = ex.descripcion;
-                let payerBadge = '';
-
-                if (isLiquidacion) {
-                    const receiver = ex.pagador === 'Ari' ? 'Gi' : 'Ari';
-                    displayDesc = `Liquidación (Transferencia de ${ex.pagador} a ${receiver})`;
-                    payerBadge = `<span style="display:inline-block; margin-top:4px; margin-bottom:4px; font-size:0.75em; font-weight:bold; padding:2px 8px; border-radius:6px; background:#e5e7eb; color:#374151;">Movimiento de Cuentas</span>`;
-                } else {
-                    const payerColor = ex.pagador === 'Ari' ? 'background:#e0e7ff; color:#4f46e5;' : 'background:#fce7f3; color:#ec4899;';
-                    payerBadge = `<span style="display:inline-block; margin-top:4px; margin-bottom:4px; font-size:0.75em; font-weight:bold; padding:2px 8px; border-radius:6px; ${payerColor}">Pagó: ${ex.pagador}</span>`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.setAttribute('onclick', `if(!event.target.closest('button')) editExpense('${ex.id}')`);
-                tr.innerHTML = `
-                    <td>
-                        <div style="font-size:0.7em; color:var(--text-muted)">${date}</div>
-                        <div style="font-weight:600">${displayDesc}</div>
-                        ${payerBadge}<br>
-                        ${catBadges}
-                    </td>
-                    <td style="font-weight:700">${formatDisplayCurrency(ex.monto)}</td>
-                    <td style="font-size:0.9em; color:var(--text-muted)">
-                        Ari: ${formatDisplayCurrency(ariS)} (${ex.ari_pct}%)<br>
-                        Gi: ${formatDisplayCurrency(giS)} (${100 - ex.ari_pct}%)<br>
-                        ${debtText}
-                    </td>
-                    <td style="text-align: right; vertical-align: middle;">
-                        <button type="button" class="action-btn delete" onclick="deleteExpense('${ex.id}')" title="Borrar">🗑️</button>
-                    </td>
+                let tableroHtml = `
+                    <div id="wrapper-${tab.nombre}" data-tablero-id="${tab.id}" class="board-wrapper bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
+                        <div class="board-header flex items-center justify-between p-3 cursor-grab bg-slate-800/30 rounded-t-xl hover:bg-slate-700/50 transition-colors select-none" onclick="toggleMobile('${tab.nombre}')">
+                            <div class="flex items-center gap-2 pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                <h2 class="font-semibold ${tituloColor} text-sm uppercase tracking-wider">${tab.nombre}</h2>
+                            </div>
+                            <div class="flex items-center gap-2 pointer-events-auto">
+                                <button onclick="cambiarOrden('${tab.nombre}', event)" class="${colorOrden} text-[10px] px-1.5 py-0.5 rounded border border-slate-700/60 transition-colors" title="Alternar orden">${iconoOrden}</button>
+                                <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium pointer-events-none">${contadores[tab.nombre]}</span>
+                            </div>
+                        </div>
+                        <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto"></div>
+                    </div>
                 `;
-                list.appendChild(tr);
-            });
-        };
+                container.insertAdjacentHTML('beforeend', tableroHtml);
 
-        const calculateBalance = (returnValueOnly = false) => {
-            let aPaidTotal = 0, gPaidTotal = 0; 
-            let aPaidUnliquidated = 0, aShouldUnliquidated = 0;
-            let aNetTotal = 0, gNetTotal = 0;
+                const col = document.getElementById(tab.nombre);
+                let notasDelTablero = notasPorTablero[tab.nombre];
 
-            const filtered = getFilteredExpenses();
-
-            filtered.forEach(ex => {
-                const montoTotal = Number(ex.monto);
-                
-                // Flujo de Caja (Liquidación funciona como transferencia)
-                if (ex.categoria.includes('Liquidación')) {
-                    if (ex.pagador === 'Ari') {
-                        aPaidTotal += montoTotal; // Ari pagó
-                        gPaidTotal -= montoTotal; // Gi recibió (baja su flujo adelantado)
+                notasDelTablero.sort((a, b) => {
+                    if (ordenEstado === 0) {
+                        return (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at);
                     } else {
-                        gPaidTotal += montoTotal; // Gi pagó
-                        aPaidTotal -= montoTotal; // Ari recibió (baja su flujo adelantado)
+                        let tagA = (a.etiquetas && a.etiquetas.length > 0) ? a.etiquetas[0].toLowerCase() : 'zzz';
+                        let tagB = (b.etiquetas && b.etiquetas.length > 0) ? b.etiquetas[0].toLowerCase() : 'zzz';
+                        if (a.etiquetas?.includes('Urgente')) tagA = '000';
+                        if (b.etiquetas?.includes('Urgente')) tagB = '000';
+                        
+                        if (tagA === tagB) return (a.orden || 0) - (b.orden || 0);
+                        if (ordenEstado === 1) return tagA.localeCompare(tagB);
+                        if (ordenEstado === 2) return tagB.localeCompare(tagA);
                     }
-                } else {
-                    if (ex.pagador === 'Ari') aPaidTotal += montoTotal; else gPaidTotal += montoTotal;
-                }
+                });
 
-                // Deudas no liquidadas
-                if (!ex.liquidado) {
-                    if (ex.pagador === 'Ari') aPaidUnliquidated += montoTotal;
-                    aShouldUnliquidated += (montoTotal * (ex.ari_pct / 100));
-                }
+                notasDelTablero.forEach(nota => {
+                    const el = document.createElement('div');
+                    el.className = `nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 group relative flex flex-col ${ordenEstado === 0 ? 'cursor-grab hover:border-slate-500' : 'opacity-90'}`;
+                    el.dataset.id = nota.id;
 
-                // Gasto Real (Neto) excluyendo liquidaciones
-                if (!ex.categoria.includes('Liquidación')) {
-                    aNetTotal += (montoTotal * (ex.ari_pct / 100));
-                    gNetTotal += montoTotal - (montoTotal * (ex.ari_pct / 100));
-                }
+                    let htmlEtiquetas = nota.etiquetas?.length > 0 ? '<div class="flex flex-wrap gap-1.5 mb-2">' + nota.etiquetas.map(etq => etq === 'Urgente' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>` : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${etiquetasBD.find(e=>e.nombre===etq)?.color || 'bg-slate-700 text-slate-300 border-slate-600'}">${etq}</span>`).join('') + '</div>' : '';
+
+                    el.innerHTML = `
+                        ${htmlEtiquetas}
+                        <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1">
+                            <h4 class="font-bold text-slate-100 text-sm mb-1">${nota.titulo || 'Nota sin título'}</h4>
+                            <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
+                        </div>
+                        <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    `;
+                    col.appendChild(el);
+                });
+
+                const wrap = document.getElementById(`wrapper-${tab.nombre}`);
+                if (wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
             });
 
-            const bal = aPaidUnliquidated - aShouldUnliquidated;
-            if (returnValueOnly) return bal;
+            inicializarSortables();
+        }
 
-            // Actualizar Textos Flujo de Caja
-            const combinedCash = aPaidTotal + gPaidTotal;
-            const pctCashAri = combinedCash > 0 ? Math.round((aPaidTotal / combinedCash) * 100) : 0;
-            const pctCashGi = combinedCash > 0 ? 100 - pctCashAri : 0;
-            document.getElementById('cash-ari').textContent = `Adelantó Ari: ${formatDisplayCurrency(aPaidTotal)} (${pctCashAri}%)`;
-            document.getElementById('cash-gi').textContent = `Adelantó Gi: ${formatDisplayCurrency(gPaidTotal)} (${pctCashGi}%)`;
-
-            // Actualizar Textos Gasto Neto
-            const combinedNet = aNetTotal + gNetTotal;
-            const pctNetAri = combinedNet > 0 ? Math.round((aNetTotal / combinedNet) * 100) : 0;
-            const pctNetGi = combinedNet > 0 ? 100 - pctNetAri : 0;
-            document.getElementById('net-ari').textContent = `Gasto Neto Ari: ${formatDisplayCurrency(aNetTotal)} (${pctNetAri}%)`;
-            document.getElementById('net-gi').textContent = `Gasto Neto Gi: ${formatDisplayCurrency(gNetTotal)} (${pctNetGi}%)`;
-            document.getElementById('net-combined').textContent = `Total Gasto Real: ${formatDisplayCurrency(combinedNet)}`;
+        async function actualizarOrdenLocalYBD(tableroId) {
+            const col = document.getElementById(tableroId);
+            if(!col) return;
+            let promesas = [];
             
-            // Actualizar Balance Superior
-            const display = document.getElementById('balance-display');
-            
-            if (bal > 0.01) { 
-                display.textContent = `Gi debe a Ari: ${formatDisplayCurrency(bal)}`; 
-                display.style.color = currentUserAlias === 'Ari' ? 'var(--success)' : 'var(--danger)'; 
-            } else if (bal < -0.01) { 
-                display.textContent = `Ari debe a Gi: ${formatDisplayCurrency(Math.abs(bal))}`; 
-                display.style.color = currentUserAlias === 'Ari' ? 'var(--danger)' : 'var(--success)'; 
-            } else { 
-                display.textContent = `Saldados $ 0,00`; 
-                display.style.color = 'var(--text-main)'; 
-            }
+            Array.from(col.querySelectorAll('.nota-item')).forEach((item, i) => {
+                const id = item.dataset.id;
+                const nota = notas.find(n => n.id === id);
+                if (nota && (nota.tablero !== tableroId || nota.orden !== i)) {
+                    nota.tablero = tableroId; nota.orden = i;
+                    promesas.push(supabaseClient.from('notas').update({ tablero: tableroId, orden: i }).eq('id', nota.id));
+                }
+            });
+            renderizarUI(); 
+            if(promesas.length) await Promise.all(promesas);
+        }
 
-            let aGlobalPaidUnliq = 0, aGlobalShouldUnliq = 0;
-            expenses.forEach(ex => {
-                if (!ex.liquidado) {
-                    const mTotal = Number(ex.monto);
-                    if (ex.pagador === 'Ari') aGlobalPaidUnliq += mTotal;
-                    aGlobalShouldUnliq += (mTotal * (ex.ari_pct / 100));
+        async function actualizarOrdenTableros() {
+            const container = document.getElementById('tableros-container');
+            const wrappers = Array.from(container.querySelectorAll('.board-wrapper'));
+            let promesas = [];
+
+            wrappers.forEach((wrapper, index) => {
+                const id = wrapper.dataset.tableroId;
+                const tablero = tablerosBD.find(t => t.id === id);
+                if (tablero && tablero.orden !== index) {
+                    tablero.orden = index;
+                    promesas.push(supabaseClient.from('tableros').update({ orden: index }).eq('id', id));
                 }
             });
 
-            const globalBal = aGlobalPaidUnliq - aGlobalShouldUnliq;
-            const warningDiv = document.getElementById('global-debt-warning');
-            
-            // Usamos un pequeño margen para los decimales flotantes
-            if (Math.abs(globalBal) > 0.01 && Math.abs(globalBal - bal) > 0.01) {
-                let txt = '';
-                if (globalBal > 0) txt = `⚠️ Atención: Contando meses anteriores, Gi debe a Ari en total ${formatDisplayCurrency(globalBal)}`;
-                else txt = `⚠️ Atención: Contando meses anteriores, Ari debe a Gi en total ${formatDisplayCurrency(Math.abs(globalBal))}`;
-                warningDiv.textContent = txt;
-                warningDiv.style.display = 'block';
-            } else {
-                warningDiv.style.display = 'none';
-            }
+            tablerosBD.sort((a, b) => a.orden - b.orden);
+            if(promesas.length > 0) await Promise.all(promesas);
+        }
 
-            return bal;
-        };
+        function toggleMobile(id) {
+            if (window.innerWidth >= 768) return; 
+            const col = document.getElementById(id);
+            if (col.classList.contains('hidden')) { col.classList.remove('hidden'); col.classList.add('flex'); } 
+            else { col.classList.add('hidden'); col.classList.remove('flex'); }
+        }
 
-        const renderHomeChart = () => {
-            const ctxHome = document.getElementById('homePieChart').getContext('2d');
-            const ctxNet = document.getElementById('netPieChart').getContext('2d');
-            
-            if (homePieChartInstance) homePieChartInstance.destroy();
-            if (netPieChartInstance) netPieChartInstance.destroy();
+        checkSession();
 
-            let ariCash = 0, giCash = 0;
-            let ariNet = 0, giNet = 0;
-
-            getFilteredExpenses().forEach(ex => {
-                const montoTotal = Number(ex.monto);
-                
-                // Flujo como transferencia
-                if (ex.categoria.includes('Liquidación')) {
-                    if (ex.pagador === 'Ari') {
-                        ariCash += montoTotal;
-                        giCash -= montoTotal;
-                    } else {
-                        giCash += montoTotal;
-                        ariCash -= montoTotal;
-                    }
-                } else {
-                    if (ex.pagador === 'Ari') ariCash += montoTotal; else giCash += montoTotal;
-                }
-                
-                // Neto
-                if (!ex.categoria.includes('Liquidación')) {
-                    ariNet += (montoTotal * (ex.ari_pct / 100));
-                    giNet += montoTotal - (montoTotal * (ex.ari_pct / 100));
-                }
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(`/sw.js?v=${CURRENT_VERSION}`).then(reg => {
+                    reg.update();
+                });
             });
 
-            // CHART FLUJO DE CAJA
-            const combinedCash = ariCash + giCash;
-            const pAriCash = combinedCash > 0 ? Math.round((ariCash / combinedCash) * 100) : 0;
-            const pGiCash = combinedCash > 0 ? 100 - pAriCash : 0;
-
-            homePieChartInstance = new Chart(ctxHome, {
-                type: 'doughnut',
-                data: {
-                    labels: [`Ari (${pAriCash}%)`, `Gi (${pGiCash}%)`],
-                    datasets: [{ data: [Math.max(0, ariCash), Math.max(0, giCash)], backgroundColor: ['#4f46e5', '#ec4899'] }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right' } },
-                    onClick: (e, elements) => {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            const person = index === 0 ? 'Ari' : 'Gi';
-                            openBreakdownCashFlow(person);
-                        }
-                    }
-                }
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
             });
-
-            // CHART GASTO NETO
-            const combinedNet = ariNet + giNet;
-            const pAriNet = combinedNet > 0 ? Math.round((ariNet / combinedNet) * 100) : 0;
-            const pGiNet = combinedNet > 0 ? 100 - pAriNet : 0;
-
-            netPieChartInstance = new Chart(ctxNet, {
-                type: 'doughnut',
-                data: {
-                    labels: [`Ari (${pAriNet}%)`, `Gi (${pGiNet}%)`],
-                    datasets: [{ data: [ariNet, giNet], backgroundColor: ['#4f46e5', '#ec4899'] }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right' } },
-                    onClick: (e, elements) => {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            const person = index === 0 ? 'Ari' : 'Gi';
-                            openBreakdownNet(person);
-                        }
-                    }
-                }
-            });
-        };
-
-        const renderStatsChart = () => {
-            const ctxBar = document.getElementById('statsBarChart').getContext('2d');
-            if (statsBarChartInstance) statsBarChartInstance.destroy();
-
-            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-            const ariData = new Array(12).fill(0);
-            const giData = new Array(12).fill(0);
-
-            expenses.forEach(ex => {
-                if (!ex.categoria.includes('Liquidación')) {
-                    const m = new Date(ex.created_at).getMonth();
-                    const montoTotal = Number(ex.monto);
-                    const ariNet = montoTotal * (ex.ari_pct / 100);
-                    const giNet = montoTotal - ariNet;
-                    
-                    ariData[m] += ariNet;
-                    giData[m] += giNet;
-                }
-            });
-
-            statsBarChartInstance = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [
-                        { label: 'Ari', data: ariData, backgroundColor: '#4f46e5' },
-                        { label: 'Gi', data: giData, backgroundColor: '#ec4899' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-
-            const ctxCat = document.getElementById('categoryChart').getContext('2d');
-            if (categoryChartInstance) categoryChartInstance.destroy();
-
-            const categoryTotals = {};
-            getFilteredExpenses().forEach(ex => {
-                if (!ex.categoria.includes('Liquidación')) {
-                    const cats = ex.categoria.split(', ');
-                    const montoTotal = Number(ex.monto);
-                    const montoSplit = montoTotal / cats.length; 
-                    
-                    cats.forEach(cat => {
-                        if (!categoryTotals[cat]) categoryTotals[cat] = 0;
-                        categoryTotals[cat] += montoSplit;
-                    });
-                }
-            });
-
-            const catLabels = Object.keys(categoryTotals);
-            const catData = Object.values(categoryTotals);
-            
-            const catColors = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#14b8a6', '#84cc16', '#64748b', '#06b6d4'];
-
-            categoryChartInstance = new Chart(ctxCat, {
-                type: 'doughnut',
-                data: {
-                    labels: catLabels,
-                    datasets: [{ 
-                        data: catData, 
-                        backgroundColor: catColors.slice(0, catLabels.length)
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right' } }
-                }
-            });
-        };
-
-        const saveDefaultPct = async () => {
-            const pct = parseFloat(document.getElementById('default-ari-pct').value);
-            const btn = document.getElementById('btn-save-config');
-            btn.textContent = 'Guardando...'; btn.disabled = true;
-            const { error } = await supabaseClient.from('configuracion').upsert({ 
-                id: 1, 
-                porcentaje_ari: pct,
-                categorias: availableCategories 
-            });
-            if (!error) { 
-                defaultAriPct = pct; 
-                closeSettings(); 
-                showToast("Configuración guardada");
-            } else {
-                showToast("Error al guardar config", 'var(--danger)');
-            }
-            btn.textContent = 'Guardar Todo'; btn.disabled = false;
-        };
+        }
     </script>
 </body>
 </html>
