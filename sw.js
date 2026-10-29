@@ -1,11 +1,9 @@
-const CACHE_NAME = 'priel-notas-v3.0.0';
+const CACHE_NAME = 'priel-notas-v3.1.0';
 const urlsToCache = ['/', '/manifest.json'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
 });
 
 self.addEventListener('activate', event => {
@@ -29,8 +27,5 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
+  event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
 });
