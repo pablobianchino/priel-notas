@@ -13,13 +13,10 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .column { min-height: 120px; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -37,28 +34,19 @@
         .nota-contenido blockquote { border-left: 3px solid #475569; padding-left: 1rem; color: #94a3b8; margin: 0.5rem 0; font-style: italic; }
         .nota-contenido p { margin-bottom: 0.25rem; }
         .nota-contenido p:last-child { margin-bottom: 0; }
-
-        .drop-ghost {
-            background: #1e293b !important;
-            border: 2px dashed #3b82f6 !important;
-            opacity: 0.6 !important;
-        }
-        .board-ghost {
-            opacity: 0.3 !important;
-        }
+        
+        /* Efecto menú lateral activo */
+        .nav-item-active { background-color: rgba(59, 130, 246, 0.15); border-right: 3px solid #3b82f6; color: #60a5fa; }
     </style>
 </head>
-<body class="bg-[#0f1115] h-[100dvh] flex flex-col text-slate-200 overflow-hidden relative">
+<body class="bg-[#0f1115] h-[100dvh] flex text-slate-200 overflow-hidden relative">
 
     <div id="toast-back" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-[200]">
         Presiona atrás de nuevo para salir
     </div>
 
     <div id="loading-screen" class="absolute inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
-        <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         <h2 class="text-sm font-bold text-slate-400 tracking-widest uppercase">Cargando Priel Notas...</h2>
     </div>
 
@@ -72,17 +60,18 @@
         </div>
     </div>
 
+    <!-- MODAL GESTOR DE CARPETAS (ETIQUETAS) -->
     <div id="modal-gestor-etiquetas" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
-                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Etiquetas</h3>
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Carpetas</h3>
                 <button onclick="cerrarGestorEtiquetas()" class="text-slate-400 hover:text-red-400 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             <div class="p-4 bg-[#1a1d24] flex flex-col gap-4">
                 <div class="flex gap-2">
-                    <input type="text" id="nueva-etiqueta-nombre" placeholder="Nombre nueva etiqueta..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
+                    <input type="text" id="nueva-etiqueta-nombre" placeholder="Nombre nueva carpeta..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
                     <button onclick="crearEtiquetaBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
                 </div>
                 <div id="lista-gestor-etiquetas" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
@@ -90,24 +79,7 @@
         </div>
     </div>
 
-    <div id="modal-gestor-tableros" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-[#15181e]">
-                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Gestor de Tableros</h3>
-                <button onclick="cerrarGestorTableros()" class="text-slate-400 hover:text-red-400 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div class="p-4 bg-[#1a1d24] flex flex-col gap-4">
-                <div class="flex gap-2">
-                    <input type="text" id="nuevo-tablero-nombre" placeholder="Nombre de tablero..." class="bg-[#15181e] border border-slate-700 text-slate-200 p-2 rounded-lg outline-none focus:border-blue-500 flex-1 text-sm">
-                    <button onclick="crearTableroBD()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Crear</button>
-                </div>
-                <div id="lista-gestor-tableros" class="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1"></div>
-            </div>
-        </div>
-    </div>
-
+    <!-- MODAL CREAR NOTA -->
     <div id="modal-crear" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -123,17 +95,14 @@
                 <input type="text" id="titulo-crear" placeholder="Título (Opcional)" class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
             <div class="p-5 bg-[#1a1d24]"><div id="editor-container" class="text-slate-200"></div></div>
-            <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
-                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-crear"></div>
-                <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
-                    <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
-                    <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar</button>
-                </div>
+            <div class="p-4 border-t border-slate-700 flex justify-end items-center gap-4 bg-[#15181e]">
+                <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL EDICIÓN CON INDICADOR DE AUTOGUARDADO -->
+    <!-- MODAL EDICIÓN CON AUTOGUARDADO -->
     <div id="modal-edicion" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex flex-col gap-3 bg-[#15181e]">
@@ -152,60 +121,84 @@
                 <input type="text" id="titulo-editar" placeholder="Título de la nota..." class="bg-transparent text-xl font-bold text-slate-100 outline-none w-full border-b border-slate-700/50 pb-2 focus:border-blue-500 transition-colors">
             </div>
             <div class="p-5 bg-[#1a1d24]"><div id="edit-editor-container" class="text-slate-200"></div></div>
-            <div class="p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#15181e]">
-                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto" id="contenedor-etiquetas-editar"></div>
-                <div class="flex gap-3 w-full md:w-auto mt-2 md:mt-0 shrink-0">
-                    <button onclick="intentarCerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-1 md:flex-none">Cancelar</button>
-                    <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex-1 md:flex-none">Guardar Cambios</button>
-                </div>
+            <div class="p-4 border-t border-slate-700 flex justify-end items-center gap-4 bg-[#15181e]">
+                <button onclick="intentarCerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar Cambios</button>
             </div>
         </div>
     </div>
 
-    <div id="main-app" class="flex-1 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 hidden overflow-y-auto overflow-x-hidden relative">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-[#1a1d24] p-4 rounded-xl border border-slate-800 shadow-sm">
+    <!-- OVERLAY MÓVIL PARA SIDEBAR -->
+    <div id="mobile-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden"></div>
+
+    <!-- PANEL LATERAL (SIDEBAR) -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-64 bg-[#1a1d24] border-r border-slate-800 flex flex-col z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 shrink-0">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between md:justify-start gap-2">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <h1 class="text-xl font-bold text-slate-100 tracking-wide">Priel Notas</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+
+        <div class="p-4 flex flex-col gap-2">
+            <button onclick="abrirModalCrear()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Redactar Nota
+            </button>
+            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.0.0</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-carpetas">
+            <!-- Renderizado dinámico desde JS -->
+        </nav>
+        
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="logout()" class="w-full text-slate-400 hover:text-slate-200 text-sm font-medium flex items-center gap-2 px-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main id="main-app" class="flex-1 flex flex-col bg-[#0f1115] relative hidden">
+        <header class="p-4 border-b border-slate-800 bg-[#1a1d24] flex items-center gap-4 shrink-0">
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div class="flex-1 max-w-2xl relative">
+                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="buscador" oninput="renderizarNotas()" placeholder="Buscar notas..." class="w-full bg-[#0f1115] border border-slate-700 text-slate-300 text-sm rounded-lg pl-9 pr-4 py-2 outline-none focus:border-blue-500 transition-colors">
+            </div>
             <div class="flex items-center gap-3">
-                <h1 class="text-xl font-bold text-slate-100 tracking-wide flex items-center gap-2">
-                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    Priel Notas
-                </h1>
-                <span id="app-version-badge" class="text-[11px] font-mono bg-blue-950/60 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded">v2.2.2</span>
+                <button onclick="abrirGestorEtiquetas()" class="text-slate-400 hover:text-blue-400" title="Gestionar Carpetas"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button>
             </div>
-            <div class="flex gap-3 items-center w-full md:w-auto justify-between md:justify-end flex-wrap">
-                <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-sm font-medium">Cerrar Sesión</button>
-                <button onclick="abrirGestorTableros()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Tableros</button>
-                <button onclick="abrirGestorEtiquetas()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Etiquetas</button>
-                <button onclick="abrirModalCrear()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center gap-2">Nueva Nota</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 id="titulo-vista" class="text-2xl font-bold text-slate-100 uppercase tracking-wide">Inbox</h2>
+                <span id="contador-vista" class="text-sm font-medium text-slate-400">0 notas</span>
+            </div>
+
+            <!-- GRILLA DE NOTAS -->
+            <div id="grid-notas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+                <!-- Se inyectan dinámicamente -->
             </div>
         </div>
-
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-2 gap-3 shrink-0">
-            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider hidden md:block">TABLEROS</h2>
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <input type="text" id="buscador" oninput="renderizarUI()" placeholder="Buscar..." class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 w-full md:w-48">
-                <select id="filtro-etiqueta" onchange="renderizarUI()" class="bg-[#1a1d24] border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 flex-1 md:flex-none"></select>
-                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-300 bg-[#1a1d24] border border-slate-700 px-3 py-1.5 rounded-lg"><input type="checkbox" id="filtro-urgente" onchange="renderizarUI()" class="w-4 h-4 accent-red-500 rounded"> Urgentes</label>
-                <button onclick="limpiarFiltros()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium">Limpiar</button>
-            </div>
-        </div>
-
-        <div id="tableros-container" class="flex flex-col md:flex-row gap-4 pb-4 flex-1 items-start min-h-0 w-full overflow-x-auto"></div>
-    </div>
+    </main>
 
     <script>
-        const CURRENT_VERSION = 'v2.2.2';
+        const CURRENT_VERSION = 'v3.0.0';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let notas = [];
-        let etiquetasBD = [];
-        let tablerosBD = [];
+        let etiquetasBD = []; 
         let user = null;
         let idNotaEditando = null;
-        let ordenesTableros = {}; 
-        let sortablesInstances = [];
-
+        let vistaActual = 'inbox';
+        
         let timerAutoGuardado = null;
         let estadoUltimoGuardado = '';
 
@@ -220,7 +213,6 @@
         document.addEventListener('copy', function(e) {
             const selection = window.getSelection();
             if (!selection || !selection.rangeCount) return;
-
             const anchorNode = selection.anchorNode;
             if (!anchorNode) return;
             const editorEl = anchorNode.nodeType === 1 ? anchorNode.closest('.ql-editor') : anchorNode.parentElement?.closest('.ql-editor');
@@ -230,9 +222,7 @@
             const fragment = range.cloneContents();
             
             const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.whiteSpace = 'pre-wrap';
+            tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.whiteSpace = 'pre-wrap';
             tempDiv.appendChild(fragment);
 
             tempDiv.querySelectorAll('.ql-align-center').forEach(el => el.style.textAlign = 'center');
@@ -241,18 +231,14 @@
 
             tempDiv.querySelectorAll('p').forEach(p => {
                 const div = document.createElement('div');
-                div.innerHTML = p.innerHTML;
-                div.style.cssText = p.style.cssText;
-                div.style.margin = '0';
-                div.style.padding = '0';
+                div.innerHTML = p.innerHTML; div.style.cssText = p.style.cssText;
+                div.style.margin = '0'; div.style.padding = '0';
                 p.parentNode.replaceChild(div, p);
             });
 
             document.body.appendChild(tempDiv);
-            
             const htmlContent = tempDiv.innerHTML;
             const plainText = tempDiv.innerText;
-
             document.body.removeChild(tempDiv);
 
             if (e.clipboardData) {
@@ -263,14 +249,10 @@
         });
 
         const paletas = [
-            'bg-purple-900/50 text-purple-300 border-purple-700/50',
-            'bg-blue-900/50 text-blue-300 border-blue-700/50',
-            'bg-green-900/50 text-green-300 border-green-700/50',
-            'bg-teal-900/50 text-teal-300 border-teal-700/50',
-            'bg-indigo-900/50 text-indigo-300 border-indigo-700/50',
-            'bg-orange-900/50 text-orange-300 border-orange-700/50',
-            'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
-            'bg-pink-900/50 text-pink-300 border-pink-700/50'
+            'bg-purple-900/50 text-purple-300 border-purple-700/50', 'bg-blue-900/50 text-blue-300 border-blue-700/50',
+            'bg-green-900/50 text-green-300 border-green-700/50', 'bg-teal-900/50 text-teal-300 border-teal-700/50',
+            'bg-indigo-900/50 text-indigo-300 border-indigo-700/50', 'bg-orange-900/50 text-orange-300 border-orange-700/50',
+            'bg-yellow-900/40 text-yellow-300 border-yellow-700/50', 'bg-pink-900/50 text-pink-300 border-pink-700/50'
         ];
 
         let backPressed = false;
@@ -284,12 +266,20 @@
             } else { history.back(); }
         });
 
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 user = session.user;
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('flex');
                 await inicializarDatos();
             } else {
                 document.getElementById('loading-screen').classList.add('hidden');
@@ -309,212 +299,197 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('flex');
                 await inicializarDatos();
             }
         }
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            user = null; notas = []; etiquetasBD = []; tablerosBD = [];
+            user = null; notas = []; etiquetasBD = [];
             document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('flex');
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('email').value = ''; document.getElementById('password').value = '';
         }
 
         async function inicializarDatos() {
-            const resTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
-            if (!resTab.error) {
-                tablerosBD = resTab.data;
-                if (tablerosBD.length === 0) {
-                    const iniciales = [
-                        { nombre: 'todo', orden: 0, user_id: user.id },
-                        { nombre: 'general', orden: 1, user_id: user.id },
-                        { nombre: 'cerrado', orden: 2, user_id: user.id }
-                    ];
-                    await supabaseClient.from('tableros').insert(iniciales);
-                    const refreshTab = await supabaseClient.from('tableros').select('*').order('orden', { ascending: true });
-                    tablerosBD = refreshTab.data;
-                }
-            }
-            tablerosBD.forEach(t => { if (ordenesTableros[t.nombre] === undefined) ordenesTableros[t.nombre] = 0; });
-            renderizarMenuTableros();
+            // Cargar Carpetas (Tabla etiquetas)
+            const resEtq = await supabaseClient.from('etiquetas').select('*').order('nombre');
+            if (!resEtq.error) etiquetasBD = resEtq.data;
 
-            const resEtq = await supabaseClient.from('etiquetas').select('*');
-            if (!resEtq.error) {
-                etiquetasBD = resEtq.data;
-                if (etiquetasBD.length === 0) {
-                    const iniciales = [
-                        { nombre: 'Mandala', color: paletas[0], user_id: user.id },
-                        { nombre: 'Show', color: paletas[1], user_id: user.id },
-                        { nombre: 'Rutina', color: paletas[2], user_id: user.id }
-                    ];
-                    await supabaseClient.from('etiquetas').insert(iniciales);
-                    const refresh = await supabaseClient.from('etiquetas').select('*');
-                    etiquetasBD = refresh.data;
-                }
-            }
-            renderizarEtiquetasDOM();
+            // Cargar Notas y Aplicar Alineación de Datos
+            const resNotas = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
+            if (!resNotas.error) { 
+                notas = resNotas.data; 
+                let promesasAlineacion = [];
+                
+                notas.forEach(n => {
+                    // Si estaba en los viejos tableros general/cerrado, va al inbox
+                    if (n.tablero === 'general' || n.tablero === 'cerrado') {
+                        n.tablero = 'inbox';
+                        promesasAlineacion.push(supabaseClient.from('notas').update({ tablero: 'inbox' }).eq('id', n.id));
+                    }
+                    // Si está en una carpeta, asegurar que el array etiquetas coincida para que funcione el dropdown
+                    if (n.tablero !== 'inbox' && (!n.etiquetas || n.etiquetas[0] !== n.tablero)) {
+                        n.etiquetas = [n.tablero];
+                        promesasAlineacion.push(supabaseClient.from('notas').update({ etiquetas: [n.tablero] }).eq('id', n.id));
+                    }
+                });
 
-            const resNotas = await supabaseClient.from('notas').select('*');
-            if (!resNotas.error) { notas = resNotas.data; renderizarUI(); }
+                if(promesasAlineacion.length > 0) await Promise.all(promesasAlineacion);
+            }
+            
+            renderizarSidebar();
+            renderizarNotas();
             document.getElementById('loading-screen').classList.add('hidden');
         }
 
-        function abrirGestorTableros() { document.getElementById('modal-gestor-tableros').classList.remove('hidden'); }
-        function cerrarGestorTableros() { document.getElementById('modal-gestor-tableros').classList.add('hidden'); }
-
-        function renderizarMenuTableros() {
-            const lista = document.getElementById('lista-gestor-tableros');
-            lista.innerHTML = tablerosBD.map(t => `
-                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
-                    <span class="text-sm font-medium text-slate-300 px-2 uppercase tracking-wide">${t.nombre}</span>
-                    <div class="flex gap-2">
-                        <button onclick="editarTableroBD('${t.id}', '${t.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
-                        <button onclick="eliminarTableroBD('${t.id}', '${t.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
-                    </div>
-                </div>
-            `).join('');
-
-            const opts = tablerosBD.map(t => `<option value="${t.nombre}">${t.nombre.toUpperCase()}</option>`).join('');
-            if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = opts;
-            if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = opts;
+        function cambiarVista(nombre) {
+            vistaActual = nombre;
+            if(window.innerWidth < 768) toggleSidebar();
+            document.getElementById('buscador').value = '';
+            renderizarSidebar();
+            renderizarNotas();
         }
 
-        async function crearTableroBD() {
-            const input = document.getElementById('nuevo-tablero-nombre');
-            const nombre = input.value.trim().toLowerCase();
-            if (!nombre || tablerosBD.some(t => t.nombre === nombre)) return;
-
-            const nuevo = { nombre, orden: tablerosBD.length, user_id: user.id };
-            const { data, error } = await supabaseClient.from('tableros').insert([nuevo]).select();
-            if (!error && data) {
-                tablerosBD.push(data[0]);
-                ordenesTableros[nombre] = 0;
-                input.value = '';
-                renderizarMenuTableros(); renderizarUI();
-            }
-        }
-
-        async function editarTableroBD(id, nombreAnterior) {
-            const nuevo = prompt("Nuevo nombre del tablero:", nombreAnterior);
-            if (!nuevo || nuevo.trim() === '' || nuevo.toLowerCase() === nombreAnterior) return;
-            const limpio = nuevo.trim().toLowerCase();
-
-            const { error } = await supabaseClient.from('tableros').update({ nombre: limpio }).eq('id', id);
-            if (!error) {
-                const idx = tablerosBD.findIndex(t => t.id === id);
-                if (idx > -1) tablerosBD[idx].nombre = limpio;
-
-                ordenesTableros[limpio] = ordenesTableros[nombreAnterior] || 0;
-                delete ordenesTableros[nombreAnterior];
-
-                const afectadas = notas.filter(n => n.tablero === nombreAnterior);
-                for (let nota of afectadas) {
-                    nota.tablero = limpio;
-                    await supabaseClient.from('notas').update({ tablero: limpio }).eq('id', nota.id);
-                }
-                renderizarMenuTableros(); renderizarUI();
-            }
-        }
-
-        async function eliminarTableroBD(id, nombre) {
-            if (tablerosBD.length <= 1) { alert("Debe quedar al menos un tablero."); return; }
+        function renderizarSidebar() {
+            const nav = document.getElementById('nav-carpetas');
+            let notasInbox = notas.filter(n => n.tablero === 'inbox').length;
             
-            const existeGeneral = tablerosBD.some(t => t.nombre === 'general' && t.id !== id);
-            const tableroReemplazo = existeGeneral ? 'general' : tablerosBD.find(t => t.id !== id).nombre;
-
-            if (!confirm(`¿Borrar el tablero "${nombre}"? Las notas que contenga se moverán al tablero "${tableroReemplazo}".`)) return;
-
-            const { error } = await supabaseClient.from('tableros').delete().eq('id', id);
-            if (!error) {
-                tablerosBD = tablerosBD.filter(t => t.id !== id);
-                delete ordenesTableros[nombre];
-
-                const afectadas = notas.filter(n => n.tablero === nombre);
-                for (let nota of afectadas) {
-                    nota.tablero = tableroReemplazo;
-                    await supabaseClient.from('notas').update({ tablero: tableroReemplazo }).eq('id', nota.id);
-                }
-                renderizarMenuTableros(); renderizarUI();
-            }
-        }
-
-        function renderizarEtiquetasDOM() {
-            const select = document.getElementById('filtro-etiqueta');
-            const valorActual = select.value;
-            let opcionesHTML = `<option value="todas">Todas las etiquetas</option><option value="sin-etiqueta">Sin Etiqueta</option>`;
-            etiquetasBD.forEach(e => opcionesHTML += `<option value="${e.nombre}">${e.nombre}</option>`);
-            select.innerHTML = opcionesHTML;
-            if (etiquetasBD.some(e => e.nombre === valorActual) || valorActual === 'todas' || valorActual === 'sin-etiqueta') select.value = valorActual;
-
-            let htmlCrear = ''; let htmlEditar = '';
-            etiquetasBD.forEach(e => {
-                htmlCrear += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-crear peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
-                htmlEditar += `<label class="cursor-pointer select-none"><input type="checkbox" class="etiqueta-editar peer hidden" value="${e.nombre}"><div class="px-2 py-1 rounded text-xs font-medium border text-slate-400 border-slate-700 peer-checked:${e.color.split(' ').join(' peer-checked:')} transition-all hover:bg-slate-800">${e.nombre}</div></label>`;
-            });
-
-            const especialCrear = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-crear" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
-            const especialEditar = `<div class="h-5 w-px bg-slate-700 mx-1 hidden md:block"></div><label class="cursor-pointer select-none"><input type="checkbox" id="check-urgente-editar" class="peer hidden"><div class="px-2 py-1 rounded text-xs font-bold border border-red-500/20 text-red-400 bg-red-500/5 peer-checked:bg-red-900/80 peer-checked:text-red-200 peer-checked:border-red-600 transition-all hover:bg-red-500/10">🚨 Urgente</div></label>`;
-
-            document.getElementById('contenedor-etiquetas-crear').innerHTML = htmlCrear + especialCrear;
-            document.getElementById('contenedor-etiquetas-editar').innerHTML = htmlEditar + especialEditar;
-
-            const listaGestor = document.getElementById('lista-gestor-etiquetas');
-            listaGestor.innerHTML = etiquetasBD.map(e => `
-                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
-                    <span class="text-sm font-medium ${e.color} px-2 py-0.5 rounded border">${e.nombre}</span>
-                    <div class="flex gap-2">
-                        <button onclick="editarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
-                        <button onclick="eliminarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
+            let html = `
+                <a href="#" onclick="cambiarVista('inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                        <span class="font-semibold text-sm">Inbox</span>
                     </div>
-                </div>
-            `).join('');
-        }
-        function abrirGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.remove('hidden'); }
-        function cerrarGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.add('hidden'); }
+                    ${notasInbox > 0 ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">${notasInbox}</span>` : ''}
+                </a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Carpetas</p></div>
+            `;
 
-        async function crearEtiquetaBD() {
-            const input = document.getElementById('nueva-etiqueta-nombre');
-            const nombre = input.value.trim();
-            if (!nombre || etiquetasBD.some(e => e.nombre.toLowerCase() === nombre.toLowerCase())) return;
-            const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
-            const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre, color: colorRandom, user_id: user.id }]).select();
-            if (!error) { etiquetasBD.push(data[0]); input.value = ''; renderizarEtiquetasDOM(); renderizarUI(); }
+            etiquetasBD.forEach(e => {
+                let isActive = vistaActual === e.nombre;
+                let notasCount = notas.filter(n => n.tablero === e.nombre).length;
+                let colorBase = e.color.split(' ')[0].replace('bg-', 'text-').replace('/50','').replace('/40','');
+
+                html += `
+                    <a href="#" onclick="cambiarVista('${e.nombre}')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 ${colorBase}" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                            <span class="font-medium text-sm truncate w-32">${e.nombre}</span>
+                        </div>
+                        ${notasCount > 0 ? `<span class="text-slate-500 text-[10px] font-bold">${notasCount}</span>` : ''}
+                    </a>
+                `;
+            });
+            nav.innerHTML = html;
+
+            // Llenar selects de modales
+            let selectOpts = `<option value="inbox">Inbox</option>`;
+            etiquetasBD.forEach(e => selectOpts += `<option value="${e.nombre}">${e.nombre}</option>`);
+            if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = selectOpts;
+            if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = selectOpts;
         }
 
-        async function editarEtiquetaBD(id, nombreAnterior) {
-            const limpio = prompt("Editar etiqueta:", nombreAnterior)?.trim();
-            if (!limpio || limpio === nombreAnterior) return;
-            const { error } = await supabaseClient.from('etiquetas').update({ nombre: limpio }).eq('id', id);
-            if (!error) {
-                etiquetasBD.find(e => e.id === id).nombre = limpio;
-                notas.filter(n => n.etiquetas?.includes(nombreAnterior)).forEach(async n => {
-                    n.etiquetas = n.etiquetas.map(e => e === nombreAnterior ? limpio : e);
-                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
+        function renderizarNotas() {
+            const grid = document.getElementById('grid-notas');
+            grid.innerHTML = '';
+            
+            document.getElementById('titulo-vista').innerText = vistaActual;
+
+            const term = document.getElementById('buscador').value.toLowerCase();
+            const tempDiv = document.createElement('div');
+            
+            let filtradas = notas.filter(n => n.tablero === vistaActual);
+
+            if (term) {
+                filtradas = notas.filter(n => {
+                    tempDiv.innerHTML = n.texto;
+                    const txt = tempDiv.innerText.toLowerCase();
+                    const tit = (n.titulo || '').toLowerCase();
+                    return txt.includes(term) || tit.includes(term);
                 });
-                renderizarEtiquetasDOM(); renderizarUI();
+                document.getElementById('titulo-vista').innerText = `Búsqueda: "${term}"`;
+            }
+
+            document.getElementById('contador-vista').innerText = `${filtradas.length} notas`;
+
+            filtradas.forEach(nota => {
+                const el = document.createElement('div');
+                el.className = `bg-[#1a1d24] rounded-xl border border-slate-700/60 p-5 hover:border-slate-500 transition-colors group flex flex-col shadow-sm h-full`;
+                
+                // Badge de carpeta si estamos en Inbox, o nada si ya estamos en la carpeta
+                let badge = '';
+                if(nota.etiquetas && nota.etiquetas.length > 0 && vistaActual === 'inbox') {
+                    let dbTag = etiquetasBD.find(e => e.nombre === nota.etiquetas[0]);
+                    let claseColor = dbTag ? dbTag.color : 'bg-slate-700 text-slate-300 border-slate-600';
+                    badge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded border ${claseColor}">${nota.etiquetas[0]}</span>`;
+                }
+
+                // Botones de acción dinámicos
+                let btnAccion = '';
+                if(vistaActual === 'inbox') {
+                    btnAccion = `<button onclick="archivarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded transition-colors" title="Archivar en su carpeta"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></button>`;
+                } else {
+                    btnAccion = `<button onclick="moverAInbox('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-yellow-400 hover:bg-slate-800 rounded transition-colors" title="Mover a Inbox"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>`;
+                }
+
+                el.innerHTML = `
+                    <div class="flex justify-between items-start mb-3 h-6">
+                        ${badge}
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                            ${btnAccion}
+                            <button onclick="eliminarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition-colors" title="Eliminar nota"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    </div>
+                    <div class="flex-1 cursor-pointer overflow-hidden" onclick="abrirModalEdicion('${nota.id}')">
+                        <h3 class="font-bold text-slate-100 text-base mb-2">${nota.titulo || 'Nota sin título'}</h3>
+                        <div class="text-slate-400 text-sm leading-relaxed line-clamp-6 nota-contenido pointer-events-none">${nota.texto}</div>
+                    </div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        // --- GESTIÓN DE NOTAS (ARCHIVAR/ELIMINAR) ---
+        async function archivarNota(id, event) {
+            event.stopPropagation();
+            const nota = notas.find(n => n.id === id);
+            if(nota.etiquetas && nota.etiquetas.length > 0 && nota.etiquetas[0] !== 'inbox') {
+                nota.tablero = nota.etiquetas[0];
+                renderizarSidebar(); renderizarNotas();
+                await supabaseClient.from('notas').update({ tablero: nota.tablero }).eq('id', id);
+            } else {
+                alert("Para archivar esta nota, primero asignale una carpeta editándola.");
             }
         }
 
-        async function eliminarEtiquetaBD(id, nombre) {
-            if (!confirm(`¿Borrar "${nombre}"?`)) return;
-            const { error } = await supabaseClient.from('etiquetas').delete().eq('id', id);
-            if (!error) {
-                etiquetasBD = etiquetasBD.filter(e => e.id !== id);
-                notas.filter(n => n.etiquetas?.includes(nombre)).forEach(async n => {
-                    n.etiquetas = n.etiquetas.filter(e => e !== nombre);
-                    await supabaseClient.from('notas').update({ etiquetas: n.etiquetas }).eq('id', n.id);
-                });
-                renderizarEtiquetasDOM(); renderizarUI();
-            }
+        async function moverAInbox(id, event) {
+            event.stopPropagation();
+            const nota = notas.find(n => n.id === id);
+            nota.tablero = 'inbox';
+            renderizarSidebar(); renderizarNotas();
+            await supabaseClient.from('notas').update({ tablero: 'inbox' }).eq('id', id);
         }
 
-        function abrirModalCrear() { document.getElementById('modal-crear').classList.remove('hidden'); setTimeout(() => quill.focus(), 100); }
+        async function eliminarNota(id, event) {
+            event.stopPropagation();
+            if(!confirm("¿Seguro que querés eliminar esta nota?")) return;
+            notas = notas.filter(n => n.id !== id);
+            renderizarSidebar(); renderizarNotas();
+            await supabaseClient.from('notas').delete().eq('id', id);
+        }
+
+        // --- MODALES Y EDICIÓN ---
+        function abrirModalCrear() {
+            document.getElementById('modal-crear').classList.remove('hidden');
+            document.getElementById('tablero-crear').value = vistaActual === 'inbox' ? 'inbox' : vistaActual;
+            setTimeout(() => quill.focus(), 100);
+        }
         function cerrarModalCrear() {
             document.getElementById('modal-crear').classList.add('hidden');
             quill.setContents([]); document.getElementById('titulo-crear').value = '';
-            document.querySelectorAll('.etiqueta-crear').forEach(cb => cb.checked = false);
-            if(document.getElementById('check-urgente-crear')) document.getElementById('check-urgente-crear').checked = false;
         }
 
         async function agregarNota() {
@@ -522,54 +497,41 @@
             const tituloInput = document.getElementById('titulo-crear').value.trim();
             if (textoPlano === '' && tituloInput === '') return;
 
-            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-crear:checked')).map(cb => cb.value);
-            const isUrgente = document.getElementById('check-urgente-crear')?.checked;
-            
-            let tableroInicial = document.getElementById('tablero-crear').value || tablerosBD[0]?.nombre;
-            if (isUrgente) etiquetasSeleccionadas.push('Urgente');
+            const carpetaSelec = document.getElementById('tablero-crear').value;
+            let etiquetasFinal = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
 
             const nueva = {
                 titulo: tituloInput || `Nota ${notas.length + 1}`, texto: quill.root.innerHTML,
-                tablero: tableroInicial, etiquetas: etiquetasSeleccionadas, orden: 0, user_id: user.id
+                tablero: 'inbox', etiquetas: etiquetasFinal, user_id: user.id
             };
             const { data, error } = await supabaseClient.from('notas').insert([nueva]).select();
-            if (!error && data) { notas.push(data[0]); renderizarUI(); cerrarModalCrear(); }
-        }
-
-        async function eliminarNota(id, event) {
-            event.stopPropagation(); notas = notas.filter(n => n.id !== id); renderizarUI();
-            await supabaseClient.from('notas').delete().eq('id', id);
+            if (!error && data) { 
+                notas.unshift(data[0]); 
+                if(vistaActual !== 'inbox') cambiarVista('inbox');
+                else { renderizarSidebar(); renderizarNotas(); }
+                cerrarModalCrear(); 
+            }
         }
 
         function serializarEstadoEdicion() {
             const titulo = document.getElementById('titulo-editar').value.trim();
             const texto = editQuill.root.innerHTML;
             const tablero = document.getElementById('tablero-editar').value;
-            const etiquetas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
-            if (document.getElementById('check-urgente-editar')?.checked) etiquetas.push('Urgente');
-            return JSON.stringify({ titulo, texto, tablero, etiquetas });
+            return JSON.stringify({ titulo, texto, tablero });
         }
 
         async function abrirModalEdicion(id) {
             const { data: notaActualizada, error } = await supabaseClient.from('notas').select('*').eq('id', id).single();
-            if (error || !notaActualizada) { alert("Error: Nota no encontrada en el servidor."); return; }
+            if (error || !notaActualizada) { alert("Error: Nota no encontrada."); return; }
 
             const index = notas.findIndex(n => n.id === id);
             if (index !== -1) notas[index] = notaActualizada;
-            renderizarUI();
+            renderizarSidebar(); renderizarNotas();
 
             idNotaEditando = id;
             document.getElementById('titulo-editar').value = notaActualizada.titulo || '';
-            document.getElementById('tablero-editar').value = notaActualizada.tablero;
+            document.getElementById('tablero-editar').value = notaActualizada.etiquetas?.[0] || 'inbox';
             editQuill.clipboard.dangerouslyPasteHTML(notaActualizada.texto || '');
-
-            document.querySelectorAll('.etiqueta-editar').forEach(cb => cb.checked = false);
-            if (document.getElementById('check-urgente-editar')) document.getElementById('check-urgente-editar').checked = false;
-
-            notaActualizada.etiquetas?.forEach(etq => {
-                if (etq === 'Urgente') document.getElementById('check-urgente-editar').checked = true;
-                else { const cb = document.querySelector(`.etiqueta-editar[value="${etq}"]`); if (cb) cb.checked = true; }
-            });
 
             document.getElementById('indicador-autoguardado').innerText = '';
             estadoUltimoGuardado = serializarEstadoEdicion();
@@ -581,29 +543,19 @@
         }
 
         function intentarCerrarModalEdicion() {
-            if (!idNotaEditando) {
-                cerrarModalEdicion();
-                return;
-            }
-
+            if (!idNotaEditando) { cerrarModalEdicion(); return; }
             const estadoActual = serializarEstadoEdicion();
             if (estadoActual !== estadoUltimoGuardado) {
-                const salirSinGuardar = confirm("⚠️ Tienes cambios sin guardar.\n\n¿Estás seguro de que quieres salir y PERDER estas modificaciones?\n\n(Haz clic en 'Cancelar' si quieres seguir editando para poder guardar)");
-                if (!salirSinGuardar) {
-                    return; // Cancela el cierre, el usuario se queda en la nota
-                }
+                if (!confirm("⚠️ Tienes cambios sin guardar.\n\n¿Quieres salir y perder las modificaciones?")) return;
             }
             cerrarModalEdicion();
         }
 
         function cerrarModalEdicion() {
-            clearInterval(timerAutoGuardado);
-            timerAutoGuardado = null;
+            clearInterval(timerAutoGuardado); timerAutoGuardado = null;
             document.getElementById('modal-edicion').classList.add('hidden');
-            idNotaEditando = null;
-            document.getElementById('titulo-editar').value = '';
-            document.getElementById('indicador-autoguardado').innerText = '';
-            editQuill.setContents([]);
+            idNotaEditando = null; document.getElementById('titulo-editar').value = '';
+            document.getElementById('indicador-autoguardado').innerText = ''; editQuill.setContents([]);
         }
 
         async function ejecutarAutoGuardadoSilencioso() {
@@ -611,286 +563,120 @@
             const estadoActual = serializarEstadoEdicion();
             if (estadoActual === estadoUltimoGuardado) return; 
 
-            const ind = document.getElementById('indicador-autoguardado');
-            ind.innerText = 'Guardando...';
-
+            document.getElementById('indicador-autoguardado').innerText = 'Guardando...';
             const index = notas.findIndex(n => n.id === idNotaEditando);
             if (index === -1) return;
 
-            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
-            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
-            if (esUrgente) etiquetasSeleccionadas.push('Urgente');
-
-            let tableroFinal = document.getElementById('tablero-editar').value;
-            const cambioTablero = notas[index].tablero !== tableroFinal;
-
-            const tituloEditado = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
-            const textoEditado = editQuill.root.innerHTML;
-
-            notas[index].titulo = tituloEditado;
-            notas[index].texto = textoEditado;
-            notas[index].etiquetas = etiquetasSeleccionadas;
-            notas[index].tablero = tableroFinal;
+            const carpetaSelec = document.getElementById('tablero-editar').value;
+            notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+            notas[index].texto = editQuill.root.innerHTML;
+            notas[index].etiquetas = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
 
             await supabaseClient.from('notas').update({ 
-                titulo: tituloEditado, texto: textoEditado, 
-                etiquetas: etiquetasSeleccionadas, tablero: tableroFinal 
+                titulo: notas[index].titulo, texto: notas[index].texto, etiquetas: notas[index].etiquetas
             }).eq('id', idNotaEditando);
 
             estadoUltimoGuardado = estadoActual;
-            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            ind.innerText = `Autoguardado ${hora}`;
-
-            if (cambioTablero && ordenesTableros[tableroFinal] === 0) {
-                await actualizarOrdenLocalYBD(tableroFinal);
-            } else {
-                renderizarUI();
-            }
+            document.getElementById('indicador-autoguardado').innerText = `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            renderizarSidebar(); renderizarNotas();
         }
 
         async function guardarEdicion() {
             if (!idNotaEditando) return;
-            clearInterval(timerAutoGuardado);
-            timerAutoGuardado = null;
-
+            clearInterval(timerAutoGuardado); timerAutoGuardado = null;
             const index = notas.findIndex(n => n.id === idNotaEditando);
             if (index === -1) return;
 
-            const esUrgente = document.getElementById('check-urgente-editar')?.checked;
-            const etiquetasSeleccionadas = Array.from(document.querySelectorAll('.etiqueta-editar:checked')).map(cb => cb.value);
-            if (esUrgente) etiquetasSeleccionadas.push('Urgente');
-
-            let tableroFinal = document.getElementById('tablero-editar').value;
-            const cambioTablero = notas[index].tablero !== tableroFinal;
+            const carpetaSelec = document.getElementById('tablero-editar').value;
             
             notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
             notas[index].texto = editQuill.root.innerHTML;
-            notas[index].etiquetas = etiquetasSeleccionadas;
-            notas[index].tablero = tableroFinal;
+            notas[index].etiquetas = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
+            // Si el usuario cambia la etiqueta y ya estaba archivada en otra, movemos el tablero
+            if (notas[index].tablero !== 'inbox') notas[index].tablero = carpetaSelec;
 
-            renderizarUI();
             await supabaseClient.from('notas').update({ 
                 titulo: notas[index].titulo, texto: notas[index].texto, 
-                etiquetas: notas[index].etiquetas, tablero: tableroFinal 
+                etiquetas: notas[index].etiquetas, tablero: notas[index].tablero
             }).eq('id', idNotaEditando);
 
-            if(cambioTablero && ordenesTableros[tableroFinal] === 0) actualizarOrdenLocalYBD(tableroFinal);
+            renderizarSidebar(); renderizarNotas();
             cerrarModalEdicion();
         }
 
-        function limpiarFiltros() { document.getElementById('filtro-etiqueta').value = 'todas'; document.getElementById('filtro-urgente').checked = false; document.getElementById('buscador').value = ''; renderizarUI(); }
-
-        function cambiarOrden(tableroNombre, event) {
-            event.stopPropagation();
-            ordenesTableros[tableroNombre] = ((ordenesTableros[tableroNombre] || 0) + 1) % 3;
-            renderizarUI();
+        // --- GESTOR DE CARPETAS (EX-ETIQUETAS) ---
+        function abrirGestorEtiquetas() { 
+            const listaGestor = document.getElementById('lista-gestor-etiquetas');
+            listaGestor.innerHTML = etiquetasBD.map(e => `
+                <div class="flex justify-between items-center bg-[#15181e] p-2 rounded border border-slate-700">
+                    <span class="text-sm font-medium ${e.color} px-2 py-0.5 rounded border">${e.nombre}</span>
+                    <div class="flex gap-2">
+                        <button onclick="editarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-blue-400 hover:text-blue-300 text-xs font-bold">Editar</button>
+                        <button onclick="eliminarEtiquetaBD('${e.id}', '${e.nombre}')" class="text-red-400 hover:text-red-300 text-xs font-bold">Borrar</button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('modal-gestor-etiquetas').classList.remove('hidden'); 
         }
+        function cerrarGestorEtiquetas() { document.getElementById('modal-gestor-etiquetas').classList.add('hidden'); }
 
-        function inicializarSortables() {
-            sortablesInstances.forEach(s => s.destroy());
-            sortablesInstances = [];
-
-            tablerosBD.forEach(tab => {
-                const col = document.getElementById(tab.nombre);
-                if (!col) return;
-
-                const instance = new Sortable(col, {
-                    group: 'notas-kanban',
-                    animation: 150,
-                    ghostClass: 'drop-ghost',
-                    disabled: (ordenesTableros[tab.nombre] || 0) !== 0,
-                    delay: 120,
-                    delayOnTouchOnly: true,
-                    onEnd: async function(evt) {
-                        const origenTablero = evt.from.id;
-                        const destinoTablero = evt.to.id;
-
-                        await actualizarOrdenLocalYBD(destinoTablero);
-                        if (origenTablero !== destinoTablero) {
-                            await actualizarOrdenLocalYBD(origenTablero);
-                        }
-                    }
-                });
-                sortablesInstances.push(instance);
-            });
-
-            const container = document.getElementById('tableros-container');
-            if (container) {
-                const boardSortable = new Sortable(container, {
-                    animation: 150,
-                    handle: '.board-header',
-                    ghostClass: 'board-ghost',
-                    delay: 120,
-                    delayOnTouchOnly: true,
-                    onEnd: async function() {
-                        await actualizarOrdenTableros();
-                    }
-                });
-                sortablesInstances.push(boardSortable);
+        async function crearEtiquetaBD() {
+            const input = document.getElementById('nueva-etiqueta-nombre');
+            const nombre = input.value.trim();
+            if (!nombre || etiquetasBD.some(e => e.nombre.toLowerCase() === nombre.toLowerCase())) return;
+            const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
+            const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre, color: colorRandom, user_id: user.id }]).select();
+            if (!error) { 
+                etiquetasBD.push(data[0]); input.value = ''; 
+                renderizarSidebar(); abrirGestorEtiquetas();
             }
         }
 
-        function renderizarUI() {
-            const container = document.getElementById('tableros-container');
-            container.innerHTML = '';
-            
-            let notasPorTablero = {};
-            let contadores = {};
-            
-            tablerosBD.sort((a, b) => a.orden - b.orden);
-            tablerosBD.forEach(tab => { 
-                notasPorTablero[tab.nombre] = []; 
-                contadores[tab.nombre] = 0; 
-            });
-
-            const filtroUrgente = document.getElementById('filtro-urgente').checked;
-            const filtroEtiqueta = document.getElementById('filtro-etiqueta').value;
-            const term = document.getElementById('buscador').value.toLowerCase();
-            const tempDiv = document.createElement('div');
-            const hayFiltros = filtroUrgente || filtroEtiqueta !== 'todas' || term !== '';
-
-            notas.forEach(nota => {
-                if (filtroUrgente && !nota.etiquetas?.includes('Urgente')) return;
-                if (filtroEtiqueta === 'sin-etiqueta' && nota.etiquetas?.length > 0) return;
-                if (filtroEtiqueta !== 'todas' && filtroEtiqueta !== 'sin-etiqueta' && !nota.etiquetas?.includes(filtroEtiqueta)) return;
-
-                if (term) {
-                    tempDiv.innerHTML = nota.texto;
-                    if (!tempDiv.innerText.toLowerCase().includes(term) && !(nota.titulo || '').toLowerCase().includes(term) && !nota.etiquetas?.some(e => e.toLowerCase().includes(term))) return;
-                }
-
-                if(notasPorTablero[nota.tablero]) {
-                    notasPorTablero[nota.tablero].push(nota);
-                    contadores[nota.tablero]++;
-                }
-            });
-
-            tablerosBD.forEach(tab => {
-                let isMobileHidden = window.innerWidth < 768 && tab.nombre !== tablerosBD[0].nombre ? 'hidden md:flex' : 'flex';
-                let tituloColor = 'text-slate-300';
-                if(tab.nombre === 'todo') tituloColor = 'text-yellow-200';
-                if(tab.nombre === 'cerrado') tituloColor = 'text-green-400';
-
-                let ordenEstado = ordenesTableros[tab.nombre] || 0;
-                let iconoOrden = '⇅';
-                let colorOrden = 'text-slate-500 hover:text-slate-300';
-                if (ordenEstado === 1) { iconoOrden = 'A-Z'; colorOrden = 'text-blue-400 font-black'; }
-                if (ordenEstado === 2) { iconoOrden = 'Z-A'; colorOrden = 'text-blue-400 font-black'; }
-
-                let tableroHtml = `
-                    <div id="wrapper-${tab.nombre}" data-tablero-id="${tab.id}" class="board-wrapper bg-[#15181e] rounded-xl w-full md:min-w-[300px] md:w-80 flex flex-col md:max-h-full border border-slate-800/50">
-                        <div class="board-header flex items-center justify-between p-3 cursor-grab bg-slate-800/30 rounded-t-xl hover:bg-slate-700/50 transition-colors select-none" onclick="toggleMobile('${tab.nombre}')">
-                            <div class="flex items-center gap-2 pointer-events-none">
-                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                <h2 class="font-semibold ${tituloColor} text-sm uppercase tracking-wider">${tab.nombre}</h2>
-                            </div>
-                            <div class="flex items-center gap-2 pointer-events-auto">
-                                <button onclick="cambiarOrden('${tab.nombre}', event)" class="${colorOrden} text-[10px] px-1.5 py-0.5 rounded border border-slate-700/60 transition-colors" title="Alternar orden">${iconoOrden}</button>
-                                <span id="count-${tab.nombre}" class="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-medium pointer-events-none">${contadores[tab.nombre]}</span>
-                            </div>
-                        </div>
-                        <div id="${tab.nombre}" class="column ${isMobileHidden} flex-col gap-3 p-3 overflow-y-auto"></div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', tableroHtml);
-
-                const col = document.getElementById(tab.nombre);
-                let notasDelTablero = notasPorTablero[tab.nombre];
-
-                notasDelTablero.sort((a, b) => {
-                    if (ordenEstado === 0) {
-                        return (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at);
-                    } else {
-                        let tagA = (a.etiquetas && a.etiquetas.length > 0) ? a.etiquetas[0].toLowerCase() : 'zzz';
-                        let tagB = (b.etiquetas && b.etiquetas.length > 0) ? b.etiquetas[0].toLowerCase() : 'zzz';
-                        if (a.etiquetas?.includes('Urgente')) tagA = '000';
-                        if (b.etiquetas?.includes('Urgente')) tagB = '000';
-                        
-                        if (tagA === tagB) return (a.orden || 0) - (b.orden || 0);
-                        if (ordenEstado === 1) return tagA.localeCompare(tagB);
-                        if (ordenEstado === 2) return tagB.localeCompare(tagA);
+        async function editarEtiquetaBD(id, nombreAnterior) {
+            const limpio = prompt("Editar carpeta:", nombreAnterior)?.trim();
+            if (!limpio || limpio === nombreAnterior) return;
+            const { error } = await supabaseClient.from('etiquetas').update({ nombre: limpio }).eq('id', id);
+            if (!error) {
+                etiquetasBD.find(e => e.id === id).nombre = limpio;
+                let promesas = [];
+                notas.forEach(n => {
+                    if (n.tablero === nombreAnterior || (n.etiquetas && n.etiquetas.includes(nombreAnterior))) {
+                        if(n.tablero === nombreAnterior) n.tablero = limpio;
+                        if(n.etiquetas && n.etiquetas.includes(nombreAnterior)) n.etiquetas = [limpio];
+                        promesas.push(supabaseClient.from('notas').update({ tablero: n.tablero, etiquetas: n.etiquetas }).eq('id', n.id));
                     }
                 });
+                if(promesas.length) await Promise.all(promesas);
+                if(vistaActual === nombreAnterior) vistaActual = limpio;
+                renderizarSidebar(); renderizarNotas(); abrirGestorEtiquetas();
+            }
+        }
 
-                notasDelTablero.forEach(nota => {
-                    const el = document.createElement('div');
-                    el.className = `nota-item bg-[#1a1d24] p-3 rounded-lg shadow-sm border border-slate-700/60 group relative flex flex-col ${ordenEstado === 0 ? 'cursor-grab hover:border-slate-500' : 'opacity-90'}`;
-                    el.dataset.id = nota.id;
-
-                    let htmlEtiquetas = nota.etiquetas?.length > 0 ? '<div class="flex flex-wrap gap-1.5 mb-2">' + nota.etiquetas.map(etq => etq === 'Urgente' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500 text-red-400 bg-red-900/50">🚨 Urgente</span>` : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded border ${etiquetasBD.find(e=>e.nombre===etq)?.color || 'bg-slate-700 text-slate-300 border-slate-600'}">${etq}</span>`).join('') + '</div>' : '';
-
-                    el.innerHTML = `
-                        ${htmlEtiquetas}
-                        <div onclick="abrirModalEdicion('${nota.id}')" class="cursor-pointer hover:bg-slate-800/50 rounded transition-colors -ml-1 p-1">
-                            <h4 class="font-bold text-slate-100 text-sm mb-1">${nota.titulo || 'Nota sin título'}</h4>
-                            <div class="text-slate-400 text-xs break-words nota-contenido leading-relaxed line-clamp-2 pointer-events-none">${nota.texto}</div>
-                        </div>
-                        <button onclick="eliminarNota('${nota.id}', event)" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 bg-[#1a1d24] rounded-md opacity-0 group-hover:opacity-100 transition-opacity p-1.5 shadow-sm border border-slate-700/50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                    `;
-                    col.appendChild(el);
+        async function eliminarEtiquetaBD(id, nombre) {
+            if (!confirm(`¿Borrar carpeta "${nombre}"? Las notas que contenga se moverán al Inbox.`)) return;
+            const { error } = await supabaseClient.from('etiquetas').delete().eq('id', id);
+            if (!error) {
+                etiquetasBD = etiquetasBD.filter(e => e.id !== id);
+                let promesas = [];
+                notas.forEach(n => {
+                    if (n.tablero === nombre || (n.etiquetas && n.etiquetas.includes(nombre))) {
+                        n.tablero = 'inbox'; n.etiquetas = [];
+                        promesas.push(supabaseClient.from('notas').update({ tablero: 'inbox', etiquetas: [] }).eq('id', n.id));
+                    }
                 });
-
-                const wrap = document.getElementById(`wrapper-${tab.nombre}`);
-                if (wrap) wrap.style.display = (hayFiltros && contadores[tab.nombre] === 0) ? 'none' : '';
-            });
-
-            inicializarSortables();
-        }
-
-        async function actualizarOrdenLocalYBD(tableroId) {
-            const col = document.getElementById(tableroId);
-            if(!col) return;
-            let promesas = [];
-            
-            Array.from(col.querySelectorAll('.nota-item')).forEach((item, i) => {
-                const id = item.dataset.id;
-                const nota = notas.find(n => n.id === id);
-                if (nota && (nota.tablero !== tableroId || nota.orden !== i)) {
-                    nota.tablero = tableroId; nota.orden = i;
-                    promesas.push(supabaseClient.from('notas').update({ tablero: tableroId, orden: i }).eq('id', nota.id));
-                }
-            });
-            renderizarUI(); 
-            if(promesas.length) await Promise.all(promesas);
-        }
-
-        async function actualizarOrdenTableros() {
-            const container = document.getElementById('tableros-container');
-            const wrappers = Array.from(container.querySelectorAll('.board-wrapper'));
-            let promesas = [];
-
-            wrappers.forEach((wrapper, index) => {
-                const id = wrapper.dataset.tableroId;
-                const tablero = tablerosBD.find(t => t.id === id);
-                if (tablero && tablero.orden !== index) {
-                    tablero.orden = index;
-                    promesas.push(supabaseClient.from('tableros').update({ orden: index }).eq('id', id));
-                }
-            });
-
-            tablerosBD.sort((a, b) => a.orden - b.orden);
-            if(promesas.length > 0) await Promise.all(promesas);
-        }
-
-        function toggleMobile(id) {
-            if (window.innerWidth >= 768) return; 
-            const col = document.getElementById(id);
-            if (col.classList.contains('hidden')) { col.classList.remove('hidden'); col.classList.add('flex'); } 
-            else { col.classList.add('hidden'); col.classList.remove('flex'); }
+                if(promesas.length) await Promise.all(promesas);
+                if(vistaActual === nombre) vistaActual = 'inbox';
+                renderizarSidebar(); renderizarNotas(); abrirGestorEtiquetas();
+            }
         }
 
         checkSession();
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register(`/sw.js?v=${CURRENT_VERSION}`).then(reg => {
-                    reg.update();
-                });
+                navigator.serviceWorker.register(`/sw.js?v=${CURRENT_VERSION}`).then(reg => reg.update());
             });
-
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                window.location.reload();
-            });
+            navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
         }
     </script>
 </body>
