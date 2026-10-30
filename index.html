@@ -14,7 +14,6 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Polyfill para Drag & Drop en Móviles -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
     <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/scroll-behaviour.min.js"></script>
@@ -22,6 +21,8 @@
         MobileDragDrop.polyfill({ holdToDrag: 200, dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride });
         window.addEventListener('touchmove', function() {}, {passive: false});
     </script>
+    <!-- SortableJS para ordenar carpetas -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -43,6 +44,7 @@
         
         .nav-item-active { background-color: rgba(59, 130, 246, 0.15); border-right: 3px solid #3b82f6; color: #60a5fa; }
         .drag-over-folder { background-color: rgba(59, 130, 246, 0.3) !important; border-color: #3b82f6 !important; border-style: dashed; border-width: 1px; }
+        .folder-ghost { opacity: 0.4; background-color: #1e293b; border: 1px dashed #64748b; }
     </style>
 </head>
 <body class="bg-[#0f1115] h-[100dvh] flex text-slate-200 overflow-hidden relative">
@@ -82,8 +84,8 @@
         </div>
     </div>
 
-    <!-- MENÚ CONTEXTUAL 3 PUNTOS (CARPETAS) -->
-    <div id="folder-context-menu" class="hidden absolute z-[90] bg-[#1a1d24] border border-slate-700 rounded-lg shadow-xl w-52 py-1 transform scale-95 opacity-0 transition-all origin-top-right">
+    <!-- MENÚ CONTEXTUAL 3 PUNTOS -->
+    <div id="folder-context-menu" class="hidden absolute z-[90] bg-[#1a1d24] border border-slate-700 rounded-lg shadow-xl w-52 py-1 transform scale-95 opacity-0 transition-all origin-top-left md:origin-top-right">
         <div class="px-3 py-2 border-b border-slate-700/50">
             <span class="text-xs font-semibold text-slate-500 uppercase mb-2 block">Color de carpeta</span>
             <div id="folder-color-options" class="grid grid-cols-4 gap-2"></div>
@@ -164,7 +166,7 @@
             <button onclick="abrirModalCrear()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Redactar Nota
             </button>
-            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.1.0</span>
+            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.2.0</span>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-carpetas">
@@ -188,7 +190,6 @@
                 <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 <input type="text" id="buscador" oninput="renderizarNotas()" placeholder="Buscar notas..." class="w-full bg-[#0f1115] border border-slate-700 text-slate-300 text-sm rounded-lg pl-9 pr-4 py-2 outline-none focus:border-blue-500 transition-colors">
             </div>
-            <!-- Se removió el botón Etiquetas de aquí -->
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6" ondragover="dragOverInbox(event)" ondrop="dropNota(event, 'inbox')" ondragleave="dragLeaveInbox(event)" id="main-drop-area">
@@ -205,7 +206,7 @@
     </main>
 
     <script>
-        const CURRENT_VERSION = 'v3.1.0';
+        const CURRENT_VERSION = 'v3.2.0';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -221,6 +222,7 @@
         
         let modoCarpetaActual = 'crear'; // 'crear' o 'renombrar'
         let carpetaActivaMenu = null;
+        let sortableCarpetasInstance = null;
 
         const quillConfig = {
             theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
@@ -268,7 +270,7 @@
             }
         });
 
-        // Click global para cerrar el menú de 3 puntos
+        // Ocultar menú contextual al hacer clic fuera
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('folder-context-menu');
             if (!menu.contains(e.target) && !e.target.closest('.btn-3-dots')) {
@@ -283,17 +285,6 @@
             'bg-indigo-900/50 text-indigo-300 border-indigo-700/50', 'bg-orange-900/50 text-orange-300 border-orange-700/50',
             'bg-yellow-900/40 text-yellow-300 border-yellow-700/50', 'bg-pink-900/50 text-pink-300 border-pink-700/50'
         ];
-
-        let backPressed = false;
-        history.pushState(null, null, location.href);
-        window.addEventListener('popstate', function(event) {
-            if (!backPressed) {
-                backPressed = true; history.pushState(null, null, location.href);
-                const toast = document.getElementById('toast-back');
-                toast.classList.remove('opacity-0');
-                setTimeout(() => { toast.classList.add('opacity-0'); backPressed = false; }, 2000);
-            } else { history.back(); }
-        });
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -343,7 +334,7 @@
         }
 
         async function inicializarDatos() {
-            const resEtq = await supabaseClient.from('etiquetas').select('*').order('nombre');
+            const resEtq = await supabaseClient.from('etiquetas').select('*').order('orden', { ascending: true });
             if (!resEtq.error) etiquetasBD = resEtq.data;
 
             const resNotas = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
@@ -377,23 +368,25 @@
             renderizarNotas();
         }
 
-        // --- GESTIÓN DE CARPETAS (SIDEBAR) Y MENÚ 3 PUNTOS ---
+        // --- GESTIÓN DE CARPETAS (SIDEBAR) ---
         function renderizarSidebar() {
             const nav = document.getElementById('nav-carpetas');
             let notasInbox = notas.filter(n => n.tablero === 'inbox').length;
             
             let html = `
-                <a href="#" onclick="cambiarVista('inbox')" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, 'inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors border border-transparent ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
+                <div role="button" onclick="cambiarVista('inbox')" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, 'inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors border border-transparent cursor-pointer ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
                     <div class="flex items-center gap-3 pointer-events-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
                         <span class="font-semibold text-sm">Inbox</span>
                     </div>
                     ${notasInbox > 0 ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">${notasInbox}</span>` : ''}
-                </a>
+                </div>
+                
                 <div class="flex items-center justify-between pt-4 pb-1 px-3">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Carpetas</p>
                     <button onclick="abrirModalCrearCarpeta()" class="text-slate-400 hover:text-white transition-colors" title="Nueva Carpeta"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
                 </div>
+                <div id="lista-carpetas-sortable" class="flex flex-col gap-1">
             `;
 
             etiquetasBD.forEach(e => {
@@ -402,26 +395,63 @@
                 let colorBase = e.color.split(' ')[0].replace('bg-', 'text-').replace('/50','').replace('/40','');
 
                 html += `
-                    <div class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, '${e.nombre}')">
-                        <a href="#" onclick="cambiarVista('${e.nombre}')" class="flex-1 flex items-center gap-3 py-0.5">
-                            <svg class="w-4 h-4 ${colorBase} pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
-                            <span class="font-medium text-sm truncate w-28 pointer-events-none">${e.nombre}</span>
-                        </a>
+                    <div data-nombre="${e.nombre}" class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, '${e.nombre}')">
+                        <div onclick="cambiarVista('${e.nombre}')" class="flex-1 flex items-center gap-3 py-0.5 pointer-events-none">
+                            <svg class="w-4 h-4 ${colorBase}" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                            <span class="font-medium text-sm truncate w-28">${e.nombre}</span>
+                        </div>
                         <div class="flex items-center gap-2">
                             ${notasCount > 0 ? `<span class="text-slate-500 text-[10px] font-bold pointer-events-none ${isActive ? 'hidden group-hover:hidden' : 'group-hover:hidden'}">${notasCount}</span>` : ''}
                             <button onclick="abrirMenuContextual(event, '${e.nombre}')" class="btn-3-dots p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100 ${isActive ? 'opacity-100' : ''}">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                                <svg class="w-4 h-4 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
                             </button>
                         </div>
                     </div>
                 `;
             });
+            html += `</div>`; // Cierra sortable container
             nav.innerHTML = html;
 
             let selectOpts = `<option value="inbox">Inbox</option>`;
             etiquetasBD.forEach(e => selectOpts += `<option value="${e.nombre}">${e.nombre}</option>`);
             if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = selectOpts;
             if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = selectOpts;
+
+            inicializarSortableCarpetas();
+        }
+
+        function inicializarSortableCarpetas() {
+            const container = document.getElementById('lista-carpetas-sortable');
+            if (!container) return;
+            if (sortableCarpetasInstance) sortableCarpetasInstance.destroy();
+            
+            sortableCarpetasInstance = new Sortable(container, {
+                animation: 150,
+                delay: 150, // Delay para touch (evita que arrastre al scrollear)
+                delayOnTouchOnly: true,
+                ghostClass: 'folder-ghost',
+                onEnd: async function() {
+                    await actualizarOrdenCarpetas();
+                }
+            });
+        }
+
+        async function actualizarOrdenCarpetas() {
+            const container = document.getElementById('lista-carpetas-sortable');
+            const items = Array.from(container.children);
+            let promesas = [];
+
+            items.forEach((item, index) => {
+                const nombreCarpeta = item.dataset.nombre;
+                const etiqueta = etiquetasBD.find(e => e.nombre === nombreCarpeta);
+                if (etiqueta && (etiqueta.orden || 0) !== index) {
+                    etiqueta.orden = index;
+                    promesas.push(supabaseClient.from('etiquetas').update({ orden: index }).eq('id', etiqueta.id));
+                }
+            });
+
+            etiquetasBD.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+            if(promesas.length > 0) await Promise.all(promesas);
         }
 
         function abrirMenuContextual(e, nombreCarpeta) {
@@ -435,8 +465,16 @@
             }).join('');
             
             const rect = e.currentTarget.getBoundingClientRect();
-            menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-            menu.style.left = `${rect.left + window.scrollX - 180}px`; 
+            // Ajuste responsivo de la posición
+            if(window.innerWidth < 768) {
+                menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
+                menu.style.left = `${rect.left + window.scrollX + 20}px`;
+                menu.classList.replace('origin-top-right', 'origin-top-left');
+            } else {
+                menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
+                menu.style.left = `${rect.left + window.scrollX - 180}px`; 
+                menu.classList.replace('origin-top-left', 'origin-top-right');
+            }
             
             menu.classList.remove('hidden');
             setTimeout(() => menu.classList.remove('opacity-0', 'scale-95'), 10);
@@ -474,7 +512,8 @@
             if (modoCarpetaActual === 'crear') {
                 if (etiquetasBD.some(e => e.nombre.toLowerCase() === nuevoNombre.toLowerCase())) { alert("La carpeta ya existe."); return; }
                 const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
-                const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre: nuevoNombre, color: colorRandom, user_id: user.id }]).select();
+                const ordenNuevo = etiquetasBD.length;
+                const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre: nuevoNombre, color: colorRandom, user_id: user.id, orden: ordenNuevo }]).select();
                 if (!error) { 
                     etiquetasBD.push(data[0]); 
                     renderizarSidebar(); cerrarModalCarpeta(); 
@@ -554,7 +593,6 @@
         function dragLeaveCarpeta(e) {
             e.currentTarget.classList.remove('drag-over-folder');
         }
-        // Soporte visual por si se arrastra de vuelta al área principal
         function dragOverInbox(e) { e.preventDefault(); }
         function dragLeaveInbox(e) { }
 
@@ -641,7 +679,6 @@
             });
         }
 
-        // --- ACCIONES DE NOTAS ---
         async function archivarNota(id, event) {
             event.stopPropagation();
             const nota = notas.find(n => n.id === id);
