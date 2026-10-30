@@ -1,4 +1,4 @@
-const CACHE_NAME = 'priel-notas-v3.1.0';
+const CACHE_NAME = 'priel-notas-v3.2.0';
 const urlsToCache = ['/', '/manifest.json'];
 
 self.addEventListener('install', event => {
