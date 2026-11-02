@@ -21,7 +21,6 @@
         MobileDragDrop.polyfill({ holdToDrag: 200, dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride });
         window.addEventListener('touchmove', function() {}, {passive: false});
     </script>
-    <!-- SortableJS para ordenar carpetas -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
     <style>
@@ -45,6 +44,7 @@
         .nav-item-active { background-color: rgba(59, 130, 246, 0.15); border-right: 3px solid #3b82f6; color: #60a5fa; }
         .drag-over-folder { background-color: rgba(59, 130, 246, 0.3) !important; border-color: #3b82f6 !important; border-style: dashed; border-width: 1px; }
         .folder-ghost { opacity: 0.4; background-color: #1e293b; border: 1px dashed #64748b; }
+        .nota-ghost { opacity: 0.5; background-color: #1e293b; border: 1px dashed #3b82f6; }
     </style>
 </head>
 <body class="bg-[#0f1115] h-[100dvh] flex text-slate-200 overflow-hidden relative">
@@ -118,7 +118,7 @@
             <div class="p-5 bg-[#1a1d24]"><div id="editor-container" class="text-slate-200"></div></div>
             <div class="p-4 border-t border-slate-700 flex justify-end items-center gap-4 bg-[#15181e]">
                 <button onclick="cerrarModalCrear()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar</button>
+                <button id="btn-guardar-crear" onclick="agregarNota()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar</button>
             </div>
         </div>
     </div>
@@ -144,7 +144,7 @@
             <div class="p-5 bg-[#1a1d24]"><div id="edit-editor-container" class="text-slate-200"></div></div>
             <div class="p-4 border-t border-slate-700 flex justify-end items-center gap-4 bg-[#15181e]">
                 <button onclick="intentarCerrarModalEdicion()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar Cambios</button>
+                <button id="btn-guardar-edicion" onclick="guardarEdicion()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md">Guardar Cambios</button>
             </div>
         </div>
     </div>
@@ -166,11 +166,11 @@
             <button onclick="abrirModalCrear()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Redactar Nota
             </button>
-            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.2.0</span>
+            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.3.0</span>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-carpetas">
-            <!-- Renderizado dinámico desde JS -->
+            <!-- Renderizado dinámico -->
         </nav>
         
         <div class="p-4 border-t border-slate-800">
@@ -192,21 +192,21 @@
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-6" ondragover="dragOverInbox(event)" ondrop="dropNota(event, 'inbox')" ondragleave="dragLeaveInbox(event)" id="main-drop-area">
-            <div class="flex items-center justify-between mb-6">
+        <div class="flex-1 overflow-y-auto p-4 md:p-6" id="main-scroll-area">
+            <div class="flex items-center justify-between mb-4">
                 <h2 id="titulo-vista" class="text-2xl font-bold text-slate-100 uppercase tracking-wide">Inbox</h2>
                 <span id="contador-vista" class="text-sm font-medium text-slate-400">0 notas</span>
             </div>
 
-            <!-- GRILLA DE NOTAS -->
-            <div id="grid-notas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+            <!-- LISTA DE NOTAS VERTICAL ESTILO GMAIL -->
+            <div id="grid-notas" class="flex flex-col gap-1.5 pb-20">
                 <!-- Se inyectan dinámicamente -->
             </div>
         </div>
     </main>
 
     <script>
-        const CURRENT_VERSION = 'v3.2.0';
+        const CURRENT_VERSION = 'v3.3.0';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -220,9 +220,11 @@
         let timerAutoGuardado = null;
         let estadoUltimoGuardado = '';
         
-        let modoCarpetaActual = 'crear'; // 'crear' o 'renombrar'
+        let modoCarpetaActual = 'crear'; 
         let carpetaActivaMenu = null;
         let sortableCarpetasInstance = null;
+        let sortableNotasInstance = null;
+        let isSaving = false; // Candado Anti-Duplicación
 
         const quillConfig = {
             theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
@@ -231,7 +233,6 @@
         var quill = new Quill('#editor-container', quillConfig);
         var editQuill = new Quill('#edit-editor-container', quillConfig);
 
-        // INTERCEPTOR DE PORTAPAPELES
         document.addEventListener('copy', function(e) {
             const selection = window.getSelection();
             if (!selection || !selection.rangeCount) return;
@@ -270,7 +271,6 @@
             }
         });
 
-        // Ocultar menú contextual al hacer clic fuera
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('folder-context-menu');
             if (!menu.contains(e.target) && !e.target.closest('.btn-3-dots')) {
@@ -337,7 +337,7 @@
             const resEtq = await supabaseClient.from('etiquetas').select('*').order('orden', { ascending: true });
             if (!resEtq.error) etiquetasBD = resEtq.data;
 
-            const resNotas = await supabaseClient.from('notas').select('*').order('created_at', { ascending: false });
+            const resNotas = await supabaseClient.from('notas').select('*');
             if (!resNotas.error) { 
                 notas = resNotas.data; 
                 let promesasAlineacion = [];
@@ -368,13 +368,13 @@
             renderizarNotas();
         }
 
-        // --- GESTIÓN DE CARPETAS (SIDEBAR) ---
+        // --- GESTIÓN DE CARPETAS ---
         function renderizarSidebar() {
             const nav = document.getElementById('nav-carpetas');
             let notasInbox = notas.filter(n => n.tablero === 'inbox').length;
             
             let html = `
-                <div role="button" onclick="cambiarVista('inbox')" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, 'inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors border border-transparent cursor-pointer ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
+                <div role="button" onclick="cambiarVista('inbox')" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNotaManual(event, 'inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors border border-transparent cursor-pointer ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
                     <div class="flex items-center gap-3 pointer-events-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
                         <span class="font-semibold text-sm">Inbox</span>
@@ -395,7 +395,7 @@
                 let colorBase = e.color.split(' ')[0].replace('bg-', 'text-').replace('/50','').replace('/40','');
 
                 html += `
-                    <div data-nombre="${e.nombre}" onclick="cambiarVista('${e.nombre}')" class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNota(event, '${e.nombre}')">
+                    <div data-nombre="${e.nombre}" onclick="cambiarVista('${e.nombre}')" class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNotaManual(event, '${e.nombre}')">
                         <div class="flex-1 flex items-center gap-3 py-0.5 pointer-events-none">
                             <svg class="w-4 h-4 ${colorBase}" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
                             <span class="font-medium text-sm truncate w-28">${e.nombre}</span>
@@ -417,41 +417,24 @@
             if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = selectOpts;
             if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = selectOpts;
 
-            inicializarSortableCarpetas();
-        }
-
-        function inicializarSortableCarpetas() {
-            const container = document.getElementById('lista-carpetas-sortable');
-            if (!container) return;
             if (sortableCarpetasInstance) sortableCarpetasInstance.destroy();
-            
-            sortableCarpetasInstance = new Sortable(container, {
-                animation: 150,
-                delay: 150, // Delay para touch (evita que arrastre al scrollear)
-                delayOnTouchOnly: true,
-                ghostClass: 'folder-ghost',
+            sortableCarpetasInstance = new Sortable(document.getElementById('lista-carpetas-sortable'), {
+                animation: 150, delay: 150, delayOnTouchOnly: true, ghostClass: 'folder-ghost',
                 onEnd: async function() {
-                    await actualizarOrdenCarpetas();
+                    const items = Array.from(document.getElementById('lista-carpetas-sortable').children);
+                    let promesas = [];
+                    items.forEach((item, index) => {
+                        const nombreCarpeta = item.dataset.nombre;
+                        const etiqueta = etiquetasBD.find(e => e.nombre === nombreCarpeta);
+                        if (etiqueta && (etiqueta.orden || 0) !== index) {
+                            etiqueta.orden = index;
+                            promesas.push(supabaseClient.from('etiquetas').update({ orden: index }).eq('id', etiqueta.id));
+                        }
+                    });
+                    etiquetasBD.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                    if(promesas.length > 0) await Promise.all(promesas);
                 }
             });
-        }
-
-        async function actualizarOrdenCarpetas() {
-            const container = document.getElementById('lista-carpetas-sortable');
-            const items = Array.from(container.children);
-            let promesas = [];
-
-            items.forEach((item, index) => {
-                const nombreCarpeta = item.dataset.nombre;
-                const etiqueta = etiquetasBD.find(e => e.nombre === nombreCarpeta);
-                if (etiqueta && (etiqueta.orden || 0) !== index) {
-                    etiqueta.orden = index;
-                    promesas.push(supabaseClient.from('etiquetas').update({ orden: index }).eq('id', etiqueta.id));
-                }
-            });
-
-            etiquetasBD.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-            if(promesas.length > 0) await Promise.all(promesas);
         }
 
         function abrirMenuContextual(e, nombreCarpeta) {
@@ -459,20 +442,16 @@
             carpetaActivaMenu = nombreCarpeta;
             const menu = document.getElementById('folder-context-menu');
             
-            const colorContainer = document.getElementById('folder-color-options');
-            colorContainer.innerHTML = paletas.map(p => {
+            document.getElementById('folder-color-options').innerHTML = paletas.map(p => {
                 return `<div onclick="cambiarColorCarpeta('${p}')" class="w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform ${p.split(' ')[0]} border ${p.split(' ')[2]} mx-auto"></div>`;
             }).join('');
             
             const rect = e.currentTarget.getBoundingClientRect();
-            // Ajuste responsivo de la posición
             if(window.innerWidth < 768) {
-                menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                menu.style.left = `${rect.left + window.scrollX + 20}px`;
+                menu.style.top = `${rect.bottom + window.scrollY + 5}px`; menu.style.left = `${rect.left + window.scrollX + 20}px`;
                 menu.classList.replace('origin-top-right', 'origin-top-left');
             } else {
-                menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                menu.style.left = `${rect.left + window.scrollX - 180}px`; 
+                menu.style.top = `${rect.bottom + window.scrollY + 5}px`; menu.style.left = `${rect.left + window.scrollX - 180}px`; 
                 menu.classList.replace('origin-top-left', 'origin-top-right');
             }
             
@@ -481,32 +460,20 @@
         }
 
         function abrirModalCrearCarpeta() {
-            modoCarpetaActual = 'crear';
-            document.getElementById('titulo-modal-carpeta').innerText = 'Nueva Carpeta';
-            document.getElementById('input-nombre-carpeta').value = '';
-            document.getElementById('modal-input-carpeta').classList.remove('hidden');
+            modoCarpetaActual = 'crear'; document.getElementById('titulo-modal-carpeta').innerText = 'Nueva Carpeta';
+            document.getElementById('input-nombre-carpeta').value = ''; document.getElementById('modal-input-carpeta').classList.remove('hidden');
             setTimeout(() => document.getElementById('input-nombre-carpeta').focus(), 100);
         }
-
         function abrirModalRenombrarCarpeta() {
-            const menu = document.getElementById('folder-context-menu');
-            menu.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => menu.classList.add('hidden'), 150);
-
-            modoCarpetaActual = 'renombrar';
-            document.getElementById('titulo-modal-carpeta').innerText = 'Renombrar Carpeta';
-            document.getElementById('input-nombre-carpeta').value = carpetaActivaMenu;
-            document.getElementById('modal-input-carpeta').classList.remove('hidden');
+            document.getElementById('folder-context-menu').classList.add('hidden', 'opacity-0', 'scale-95');
+            modoCarpetaActual = 'renombrar'; document.getElementById('titulo-modal-carpeta').innerText = 'Renombrar Carpeta';
+            document.getElementById('input-nombre-carpeta').value = carpetaActivaMenu; document.getElementById('modal-input-carpeta').classList.remove('hidden');
             setTimeout(() => document.getElementById('input-nombre-carpeta').focus(), 100);
         }
-
-        function cerrarModalCarpeta() {
-            document.getElementById('modal-input-carpeta').classList.add('hidden');
-        }
+        function cerrarModalCarpeta() { document.getElementById('modal-input-carpeta').classList.add('hidden'); }
 
         async function guardarCarpetaBD() {
-            const input = document.getElementById('input-nombre-carpeta');
-            const nuevoNombre = input.value.trim();
+            const nuevoNombre = document.getElementById('input-nombre-carpeta').value.trim();
             if (!nuevoNombre) return;
 
             if (modoCarpetaActual === 'crear') {
@@ -514,11 +481,8 @@
                 const colorRandom = paletas[Math.floor(Math.random() * paletas.length)];
                 const ordenNuevo = etiquetasBD.length;
                 const { data, error } = await supabaseClient.from('etiquetas').insert([{ nombre: nuevoNombre, color: colorRandom, user_id: user.id, orden: ordenNuevo }]).select();
-                if (!error) { 
-                    etiquetasBD.push(data[0]); 
-                    renderizarSidebar(); cerrarModalCarpeta(); 
-                }
-            } else if (modoCarpetaActual === 'renombrar') {
+                if (!error) { etiquetasBD.push(data[0]); renderizarSidebar(); cerrarModalCarpeta(); }
+            } else {
                 if (nuevoNombre === carpetaActivaMenu) { cerrarModalCarpeta(); return; }
                 const id = etiquetasBD.find(e => e.nombre === carpetaActivaMenu).id;
                 const { error } = await supabaseClient.from('etiquetas').update({ nombre: nuevoNombre }).eq('id', id);
@@ -542,26 +506,17 @@
         async function cambiarColorCarpeta(colorClass) {
             if(!carpetaActivaMenu) return;
             const id = etiquetasBD.find(e => e.nombre === carpetaActivaMenu).id;
-            
-            const menu = document.getElementById('folder-context-menu');
-            menu.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => menu.classList.add('hidden'), 150);
-            
+            document.getElementById('folder-context-menu').classList.add('hidden', 'opacity-0', 'scale-95');
             etiquetasBD.find(e => e.id === id).color = colorClass;
             renderizarSidebar(); renderizarNotas();
             await supabaseClient.from('etiquetas').update({color: colorClass}).eq('id', id);
         }
 
         async function eliminarCarpetaBD() {
-            const menu = document.getElementById('folder-context-menu');
-            menu.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => menu.classList.add('hidden'), 150);
-
+            document.getElementById('folder-context-menu').classList.add('hidden', 'opacity-0', 'scale-95');
             if (!confirm(`¿Borrar carpeta "${carpetaActivaMenu}"? Sus notas se moverán al Inbox.`)) return;
-            
             const id = etiquetasBD.find(e => e.nombre === carpetaActivaMenu).id;
             const { error } = await supabaseClient.from('etiquetas').delete().eq('id', id);
-            
             if (!error) {
                 etiquetasBD = etiquetasBD.filter(e => e.id !== id);
                 let promesas = [];
@@ -577,48 +532,20 @@
             }
         }
 
-        // --- DRAG AND DROP NATIVO (NOTAS -> CARPETAS) ---
-        function dragStartNota(e, id) {
-            e.dataTransfer.setData("nota_id", id);
-            e.currentTarget.classList.add('opacity-40', 'scale-95');
-        }
-        function dragEndNota(e) {
-            e.currentTarget.classList.remove('opacity-40', 'scale-95');
-            document.querySelectorAll('.drag-over-folder').forEach(el => el.classList.remove('drag-over-folder'));
-        }
-        function dragOverCarpeta(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over-folder');
-        }
-        function dragLeaveCarpeta(e) {
-            e.currentTarget.classList.remove('drag-over-folder');
-        }
-        function dragOverInbox(e) { e.preventDefault(); }
-        function dragLeaveInbox(e) { }
-
-        async function dropNota(e, carpetaDestino) {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over-folder');
-            
-            const idNota = e.dataTransfer.getData("nota_id");
-            if (!idNota) return;
-
-            const nota = notas.find(n => n.id === idNota);
-            if (!nota || nota.tablero === carpetaDestino) return;
-
-            nota.tablero = carpetaDestino;
-            nota.etiquetas = carpetaDestino !== 'inbox' ? [carpetaDestino] : [];
-            
-            renderizarSidebar(); 
-            renderizarNotas();
-            
-            await supabaseClient.from('notas').update({ 
-                tablero: nota.tablero, 
-                etiquetas: nota.etiquetas 
-            }).eq('id', idNota);
+        // --- FUNCIONES EXPANSIÓN NOTAS ---
+        function toggleNotaContenido(id) {
+            const contenido = document.getElementById(`contenido-${id}`);
+            const chevron = document.getElementById(`chevron-${id}`);
+            if (contenido.classList.contains('hidden')) {
+                contenido.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                contenido.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
         }
 
-        // --- RENDERIZADO DE NOTAS ---
+        // --- RENDERIZADO DE NOTAS ESTILO GMAIL (LISTA VERTICAL) ---
         function renderizarNotas() {
             const grid = document.getElementById('grid-notas');
             grid.innerHTML = '';
@@ -641,44 +568,107 @@
 
             document.getElementById('contador-vista').innerText = `${filtradas.length} notas`;
 
+            // Orden principal: por arrastre (orden) y luego por fecha creación
+            filtradas.sort((a, b) => (a.orden || 0) - (b.orden || 0) || new Date(b.created_at) - new Date(a.created_at));
+
             filtradas.forEach(nota => {
                 const el = document.createElement('div');
-                el.className = `bg-[#1a1d24] rounded-xl border border-slate-700/60 p-5 hover:border-slate-500 transition-colors group flex flex-col shadow-sm h-full cursor-grab`;
-                el.draggable = true;
-                el.ondragstart = (e) => dragStartNota(e, nota.id);
-                el.ondragend = dragEndNota;
+                el.className = `bg-[#1a1d24] border border-slate-700/60 hover:border-slate-500 rounded-xl flex flex-col shadow-sm transition-colors group relative overflow-hidden`;
+                el.dataset.id = nota.id;
+                
+                // Preparar texto plano para la vista previa (una sola línea)
+                tempDiv.innerHTML = nota.texto || '';
+                const plainTextSnippet = tempDiv.innerText.replace(/\n/g, ' ').substring(0, 70);
                 
                 let badge = '';
                 if(nota.etiquetas && nota.etiquetas.length > 0 && vistaActual === 'inbox') {
                     let dbTag = etiquetasBD.find(e => e.nombre === nota.etiquetas[0]);
                     let claseColor = dbTag ? dbTag.color : 'bg-slate-700 text-slate-300 border-slate-600';
-                    badge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded border ${claseColor}">${nota.etiquetas[0]}</span>`;
+                    badge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded border ${claseColor} truncate block max-w-[100px]" title="${nota.etiquetas[0]}">${nota.etiquetas[0]}</span>`;
                 }
 
-                let btnAccion = '';
-                if(vistaActual === 'inbox') {
-                    btnAccion = `<button onclick="archivarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded transition-colors" title="Archivar en su carpeta"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></button>`;
-                } else {
-                    btnAccion = `<button onclick="moverAInbox('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-yellow-400 hover:bg-slate-800 rounded transition-colors" title="Mover a Inbox"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>`;
-                }
+                let btnAccion = vistaActual === 'inbox' 
+                    ? `<button onclick="archivarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-blue-400 rounded transition-colors" title="Archivar en su carpeta"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></button>`
+                    : `<button onclick="moverAInbox('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-yellow-400 rounded transition-colors" title="Mover a Inbox"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>`;
 
                 el.innerHTML = `
-                    <div class="flex justify-between items-start mb-3 h-6">
-                        ${badge}
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                    <div class="flex items-center gap-2 p-2 sm:p-3 bg-[#15181e]/40">
+                        <div class="drag-handle cursor-grab text-slate-600 hover:text-slate-400 p-1 shrink-0" title="Arrastrar para ordenar">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 5a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm10-14a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        
+                        <div class="w-24 shrink-0 hidden sm:block">
+                            ${badge}
+                        </div>
+
+                        <div class="flex-1 cursor-pointer font-semibold text-slate-200 truncate pr-2 flex items-center" onclick="abrirModalEdicion('${nota.id}')">
+                            <span class="truncate max-w-[200px] md:max-w-xs">${nota.titulo || 'Sin título'}</span>
+                            <span class="text-slate-500 font-normal ml-3 text-xs truncate hidden md:inline-block">- ${plainTextSnippet}</span>
+                        </div>
+
+                        <div class="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-[#15181e]/80 sm:bg-transparent rounded px-1">
+                            <button onclick="toggleNotaContenido('${nota.id}')" class="p-1.5 text-slate-400 hover:text-white rounded transition-colors" title="Expandir/Colapsar">
+                                <svg id="chevron-${nota.id}" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
                             ${btnAccion}
-                            <button onclick="eliminarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition-colors" title="Eliminar nota"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            <button onclick="eliminarNota('${nota.id}', event)" class="p-1.5 text-slate-400 hover:text-red-400 rounded transition-colors" title="Eliminar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     </div>
-                    <div class="flex-1 overflow-hidden" onclick="abrirModalEdicion('${nota.id}')">
-                        <h3 class="font-bold text-slate-100 text-base mb-2">${nota.titulo || 'Nota sin título'}</h3>
-                        <div class="text-slate-400 text-sm leading-relaxed line-clamp-6 nota-contenido pointer-events-none">${nota.texto}</div>
+                    
+                    <div id="contenido-${nota.id}" class="hidden px-10 sm:px-14 pb-4 pt-2 text-sm text-slate-300 border-t border-slate-700/30">
+                        <div class="nota-contenido cursor-pointer" onclick="abrirModalEdicion('${nota.id}')">
+                            ${nota.texto}
+                        </div>
                     </div>
                 `;
                 grid.appendChild(el);
             });
+
+            // Inicializar arrastre nativo y ordenamiento en la lista vertical
+            if (sortableNotasInstance) sortableNotasInstance.destroy();
+            sortableNotasInstance = new Sortable(grid, {
+                animation: 150, delay: 150, delayOnTouchOnly: true,
+                handle: '.drag-handle', ghostClass: 'nota-ghost',
+                setData: function (dataTransfer, dragEl) {
+                    dataTransfer.setData("nota_id", dragEl.dataset.id);
+                },
+                onEnd: async function(evt) {
+                    if (evt.oldIndex === evt.newIndex) return; // Si no cambió de lugar
+                    
+                    const items = Array.from(grid.children);
+                    let promesas = [];
+                    items.forEach((item, index) => {
+                        const id = item.dataset.id;
+                        const nota = notas.find(n => n.id === id);
+                        if (nota && nota.orden !== index) {
+                            nota.orden = index;
+                            promesas.push(supabaseClient.from('notas').update({ orden: index }).eq('id', nota.id));
+                        }
+                    });
+                    if(promesas.length > 0) await Promise.all(promesas);
+                }
+            });
         }
 
+        // --- ARRASTRE DE NOTA A CARPETA LATERAL ---
+        function dragOverCarpeta(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over-folder'); }
+        function dragLeaveCarpeta(e) { e.currentTarget.classList.remove('drag-over-folder'); }
+        async function dropNotaManual(e, carpetaDestino) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over-folder');
+            const idNota = e.dataTransfer.getData("nota_id");
+            if (!idNota) return;
+
+            const nota = notas.find(n => n.id === idNota);
+            if (!nota || nota.tablero === carpetaDestino) return;
+
+            nota.tablero = carpetaDestino;
+            nota.etiquetas = carpetaDestino !== 'inbox' ? [carpetaDestino] : [];
+            renderizarSidebar(); renderizarNotas();
+            await supabaseClient.from('notas').update({ tablero: nota.tablero, etiquetas: nota.etiquetas }).eq('id', idNota);
+        }
+
+        // --- ACCIONES DE NOTAS ---
         async function archivarNota(id, event) {
             event.stopPropagation();
             const nota = notas.find(n => n.id === id);
@@ -690,15 +680,12 @@
                 alert("Para archivar esta nota, primero asignale una carpeta editándola.");
             }
         }
-
         async function moverAInbox(id, event) {
             event.stopPropagation();
             const nota = notas.find(n => n.id === id);
-            nota.tablero = 'inbox';
-            renderizarSidebar(); renderizarNotas();
+            nota.tablero = 'inbox'; renderizarSidebar(); renderizarNotas();
             await supabaseClient.from('notas').update({ tablero: 'inbox' }).eq('id', id);
         }
-
         async function eliminarNota(id, event) {
             event.stopPropagation();
             if(!confirm("¿Seguro que querés eliminar esta nota?")) return;
@@ -707,6 +694,7 @@
             await supabaseClient.from('notas').delete().eq('id', id);
         }
 
+        // --- EDICIÓN (CON BLOQUEO ANTI-DUPLICACIÓN) ---
         function abrirModalCrear() {
             document.getElementById('modal-crear').classList.remove('hidden');
             document.getElementById('tablero-crear').value = vistaActual === 'inbox' ? 'inbox' : vistaActual;
@@ -718,9 +706,14 @@
         }
 
         async function agregarNota() {
+            if(isSaving) return;
             const textoPlano = quill.getText().trim();
             const tituloInput = document.getElementById('titulo-crear').value.trim();
             if (textoPlano === '' && tituloInput === '') return;
+
+            isSaving = true;
+            const btn = document.getElementById('btn-guardar-crear');
+            btn.disabled = true; btn.innerText = 'Guardando...';
 
             const carpetaSelec = document.getElementById('tablero-crear').value;
             let etiquetasFinal = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
@@ -729,12 +722,18 @@
                 titulo: tituloInput || `Nota ${notas.length + 1}`, texto: quill.root.innerHTML,
                 tablero: 'inbox', etiquetas: etiquetasFinal, user_id: user.id
             };
-            const { data, error } = await supabaseClient.from('notas').insert([nueva]).select();
-            if (!error && data) { 
-                notas.unshift(data[0]); 
-                if(vistaActual !== 'inbox') cambiarVista('inbox');
-                else { renderizarSidebar(); renderizarNotas(); }
-                cerrarModalCrear(); 
+            
+            try {
+                const { data, error } = await supabaseClient.from('notas').insert([nueva]).select();
+                if (!error && data) { 
+                    notas.unshift(data[0]); 
+                    if(vistaActual !== 'inbox') cambiarVista('inbox');
+                    else { renderizarSidebar(); renderizarNotas(); }
+                    cerrarModalCrear(); 
+                }
+            } finally {
+                isSaving = false;
+                btn.disabled = false; btn.innerText = 'Guardar';
             }
         }
 
@@ -807,24 +806,32 @@
         }
 
         async function guardarEdicion() {
-            if (!idNotaEditando) return;
+            if(isSaving || !idNotaEditando) return;
+            isSaving = true;
+            
+            const btn = document.getElementById('btn-guardar-edicion');
+            btn.disabled = true; btn.innerText = 'Guardando...';
+
             clearInterval(timerAutoGuardado); timerAutoGuardado = null;
             const index = notas.findIndex(n => n.id === idNotaEditando);
-            if (index === -1) return;
-
-            const carpetaSelec = document.getElementById('tablero-editar').value;
             
-            notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
-            notas[index].texto = editQuill.root.innerHTML;
-            notas[index].etiquetas = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
-            if (notas[index].tablero !== 'inbox') notas[index].tablero = carpetaSelec;
+            if (index > -1) {
+                const carpetaSelec = document.getElementById('tablero-editar').value;
+                notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
+                notas[index].texto = editQuill.root.innerHTML;
+                notas[index].etiquetas = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
+                if (notas[index].tablero !== 'inbox') notas[index].tablero = carpetaSelec;
 
-            await supabaseClient.from('notas').update({ 
-                titulo: notas[index].titulo, texto: notas[index].texto, 
-                etiquetas: notas[index].etiquetas, tablero: notas[index].tablero
-            }).eq('id', idNotaEditando);
+                await supabaseClient.from('notas').update({ 
+                    titulo: notas[index].titulo, texto: notas[index].texto, 
+                    etiquetas: notas[index].etiquetas, tablero: notas[index].tablero
+                }).eq('id', idNotaEditando);
 
-            renderizarSidebar(); renderizarNotas();
+                renderizarSidebar(); renderizarNotas();
+            }
+            
+            isSaving = false;
+            btn.disabled = false; btn.innerText = 'Guardar Cambios';
             cerrarModalEdicion();
         }
 
