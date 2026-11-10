@@ -1,4 +1,4 @@
-const CACHE_NAME = 'priel-notas-v3.5.0';
+const CACHE_NAME = 'priel-notas-v3.5';
 const urlsToCache = ['/', '/manifest.json', '/tailwind.css', '/icon-192x192.png', '/icon-512x512.png'];
 
 // Librerías externas que se cachean para que la app abra sin conexión
@@ -27,6 +27,12 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return; // nunca interceptar escrituras
 
   const url = new URL(req.url);
+
+  // version.json: siempre desde la red (nunca cacheado), es lo que dispara la actualización automática
+  if (url.origin === self.location.origin && url.pathname.endsWith('version.json')) {
+    event.respondWith(fetch(req, { cache: 'no-store' }));
+    return;
+  }
 
   // Navegación (HTML): red primero, con respaldo en caché si no hay conexión
   if (req.mode === 'navigate' || req.destination === 'document') {

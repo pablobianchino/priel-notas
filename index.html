@@ -71,9 +71,14 @@
         Presiona atrás de nuevo para salir
     </div>
 
+    <!-- AVISO: ACTUALIZANDO A NUEVA VERSIÓN (automático) -->
+    <div id="banner-update" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-xl text-sm max-w-sm">
+        ✨ Actualizando a la versión <span id="update-version"></span>...
+    </div>
+
     <div id="loading-screen" class="absolute inset-0 bg-[#0f1115] z-[100] flex flex-col items-center justify-center">
         <svg class="animate-spin h-10 w-10 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        <h2 class="text-sm font-bold text-slate-400 tracking-widest uppercase">Cargando Priel Notas...</h2>
+        <h2 id="loading-texto" class="text-sm font-bold text-slate-400 tracking-widest uppercase">Cargando Priel Notas...</h2>
     </div>
 
     <div id="auth-screen" class="absolute inset-0 bg-[#0f1115] z-50 hidden flex items-center justify-center p-4">
@@ -217,13 +222,13 @@
             <button onclick="abrirModalCrear()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Redactar Nota
             </button>
-            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.5.0</span>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-carpetas">
             <!-- Renderizado dinámico -->
         </nav>
         
+        <div id="app-version-badge" class="px-4 pb-2 text-[10px] text-center font-mono text-slate-500">v3.5</div>
         <div class="p-4 border-t border-slate-800">
             <button onclick="logout()" class="w-full text-slate-400 hover:text-slate-200 text-sm font-medium flex items-center gap-2 px-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Cerrar Sesión
@@ -264,7 +269,7 @@
     </main>
 
     <script>
-        const CURRENT_VERSION = 'v3.5.0';
+        const CURRENT_VERSION = 'v3.5';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -356,6 +361,8 @@
         }
 
         async function checkSession() {
+            // Chequeo preventivo: si hay versión nueva, actualizar antes de cargar la sesión y los datos
+            if (await chequearActualizacion(true)) return;
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 user = session.user;
@@ -1340,11 +1347,80 @@
 
         ['email', 'password'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
 
+        // =====================================================================
+        // ACTUALIZACIÓN AUTOMÁTICA DE VERSIÓN (mismo mecanismo que Admisión/Festival)
+        // Compara CURRENT_VERSION con version.json; si difieren, limpia cachés y recarga sola.
+        // Chequea: al arrancar (antes de cargar datos), al volver a la pestaña y cada 15 min.
+        // =====================================================================
+        document.getElementById('app-version-badge').innerText = CURRENT_VERSION;
+        const VERSION_LOOP_KEY = 'last_auto_reloaded_version';
+        let versionActualizando = false;
+
+        async function leerVersionRemota(timeoutMs) {
+            try {
+                const c = new AbortController();
+                const t = timeoutMs ? setTimeout(() => c.abort(), timeoutMs) : null;
+                const r = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store', signal: c.signal });
+                if (t) clearTimeout(t);
+                if (!r.ok) return null;
+                const d = await r.json();
+                return (d && d.version) || null;
+            } catch (e) { return null; } // sin conexión: se reintenta luego
+        }
+
+        // Devuelve true si inició una actualización (la página se va a recargar)
+        async function chequearActualizacion(preventivo) {
+            if (versionActualizando) return true;
+            const remota = await leerVersionRemota(preventivo ? 2000 : 0);
+            if (!remota) return false;
+            if (remota === CURRENT_VERSION) { try { sessionStorage.removeItem(VERSION_LOOP_KEY); } catch (e) {} return false; }
+
+            // Protección contra bucle: si ya se recargó para esta versión en esta sesión, no insistir
+            let previa = null; try { previa = sessionStorage.getItem(VERSION_LOOP_KEY); } catch (e) {}
+            if (previa === remota) { console.warn('[Auto-Update] Ya se recargó para ' + remota + '. Se omite bucle.'); return false; }
+            try { sessionStorage.setItem(VERSION_LOOP_KEY, remota); } catch (e) {}
+            versionActualizando = true;
+
+            if (preventivo) {
+                document.getElementById('loading-texto').innerText = 'Actualizando a la versión ' + remota + '...';
+            } else {
+                document.getElementById('update-version').innerText = remota;
+                document.getElementById('banner-update').classList.remove('hidden');
+            }
+
+            // No perder lo que se esté escribiendo
+            try { await guardarPendientes(); } catch (e) {}
+            try { if (idNotaEditando) await ejecutarAutoGuardadoSilencioso(); } catch (e) {}
+
+            try {
+                if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    if (reg) await reg.update();
+                }
+            } catch (e) {}
+
+            setTimeout(() => window.location.reload(), preventivo ? 300 : 1200);
+            return true;
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                chequearActualizacion(false);
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.getRegistration().then(reg => reg && reg.update());
+                }
+            }
+        });
+        window.addEventListener('online', () => chequearActualizacion(false));
+        setInterval(() => chequearActualizacion(false), 15 * 60 * 1000);
+
         checkSession();
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => { navigator.serviceWorker.register(`/sw.js?v=${CURRENT_VERSION}`).then(reg => reg.update()); });
-            navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+            // Un service worker nuevo tomó el control: verificar si corresponde actualizar (sin recargar en seco)
+            navigator.serviceWorker.addEventListener('controllerchange', () => chequearActualizacion(false));
         }
     </script>
 </body>
