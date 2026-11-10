@@ -45,6 +45,20 @@
         .drag-over-folder { background-color: rgba(59, 130, 246, 0.3) !important; border-color: #3b82f6 !important; border-style: dashed; border-width: 1px; }
         .folder-ghost { opacity: 0.4; background-color: #1e293b; border: 1px dashed #64748b; }
         .nota-ghost { opacity: 0.5; background-color: #1e293b; border: 1px dashed #3b82f6; }
+
+        .pend-items { min-height: 10px; }
+        .pend-check { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #475569; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; margin-top: 2px; }
+        .pend-check:hover { border-color: #3b82f6; }
+        .pend-item.hecho .pend-check { background: #3b82f6; border-color: #3b82f6; }
+        .pend-item.hecho .pend-texto { text-decoration: line-through; color: #64748b; }
+        .pend-item:not(.hecho) .pend-check svg { display: none; }
+        .pend-texto { background: transparent; resize: none; outline: none; width: 100%; overflow: hidden; font-size: 0.9rem; line-height: 1.35rem; color: #e2e8f0; border: 1px solid transparent; border-radius: 6px; padding: 0 4px; font-family: inherit; }
+        .pend-texto:focus { border-color: #334155; background: #0f1115; }
+        .pend-sec-nombre { background: transparent; outline: none; font-weight: 700; font-size: 0.8rem; letter-spacing: .06em; text-transform: uppercase; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; min-width: 0; flex: 1; font-family: inherit; }
+        .pend-sec-nombre:focus { border-color: #334155; background: #0f1115; }
+        .pend-ghost { opacity: .4; background: #1e293b; border-radius: 8px; }
+        .pend-item .pend-acciones { opacity: 1; }
+        @media (hover: hover) { .pend-item .pend-acciones { opacity: 0; } .pend-item:hover .pend-acciones, .pend-item:focus-within .pend-acciones { opacity: 1; } }
     </style>
 </head>
 <body class="bg-[#0f1115] h-[100dvh] flex text-slate-200 overflow-hidden relative">
@@ -149,6 +163,39 @@
         </div>
     </div>
 
+    <!-- MODAL PENDIENTES (CHECKLIST POR PRIORIDAD) -->
+    <div id="modal-pendientes" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-[#1a1d24] rounded-xl border border-slate-700 shadow-2xl w-full max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 bg-[#15181e] flex flex-col gap-3 shrink-0">
+                <div class="flex justify-between items-center gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-5 h-5 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M16 3a1 1 0 01.707 1.707L16 5.414V10l2.707 2.707A1 1 0 0118 14.414h-5V21a1 1 0 01-2 0v-6.586H6a1 1 0 01-.707-1.707L8 10V5.414l-.707-.707A1 1 0 018 3h8z"/></svg>
+                        <h3 class="text-lg font-bold text-slate-100 truncate">Pendientes</h3>
+                        <span id="pend-progreso" class="text-xs text-slate-400 font-mono shrink-0"></span>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span id="pend-estado" class="text-[11px] text-slate-500 font-mono"></span>
+                        <button onclick="cerrarPendientes()" class="text-slate-400 hover:text-red-400 transition-colors" title="Cerrar">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                    <label class="flex items-center gap-2 text-slate-400 cursor-pointer select-none">
+                        <input type="checkbox" id="pend-ocultar" onchange="toggleOcultarHechas(this.checked)" class="accent-blue-500"> Ocultar completadas
+                    </label>
+                    <button onclick="limpiarCompletadas()" class="text-slate-400 hover:text-red-400 transition-colors">Borrar completadas</button>
+                </div>
+            </div>
+            <div id="pend-secciones" class="flex-1 overflow-y-auto p-4 flex flex-col gap-5"></div>
+            <div class="p-3 border-t border-slate-700 bg-[#15181e] shrink-0">
+                <button onclick="agregarSeccionPend()" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Nueva sección
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- OVERLAY MÓVIL PARA SIDEBAR -->
     <div id="mobile-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden"></div>
 
@@ -166,7 +213,7 @@
             <button onclick="abrirModalCrear()" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Redactar Nota
             </button>
-            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.3.0</span>
+            <span id="app-version-badge" class="text-[10px] text-center font-mono text-slate-500">v3.4.0</span>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-carpetas">
@@ -198,6 +245,9 @@
                 <span id="contador-vista" class="text-sm font-medium text-slate-400">0 notas</span>
             </div>
 
+            <!-- NOTA FIJA: PENDIENTES -->
+            <div id="pendientes-fijo" class="hidden mb-3"></div>
+
             <!-- LISTA DE NOTAS VERTICAL ESTILO GMAIL -->
             <div id="grid-notas" class="flex flex-col gap-1.5 pb-20">
                 <!-- Se inyectan dinámicamente -->
@@ -206,7 +256,7 @@
     </main>
 
     <script>
-        const CURRENT_VERSION = 'v3.3.0';
+        const CURRENT_VERSION = 'v3.4.0';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -225,6 +275,10 @@
         let sortableCarpetasInstance = null;
         let sortableNotasInstance = null;
         let isSaving = false; // Candado Anti-Duplicación
+
+        // Escapa texto para insertarlo en HTML y literal JS seguro para atributos onclick
+        function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        function jsq(s) { return esc(JSON.stringify(String(s ?? ''))); }
 
         const quillConfig = {
             theme: 'snow', placeholder: 'Escribe el texto de tu nota...',
@@ -308,8 +362,9 @@
         }
 
         async function login() {
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
+            document.getElementById('auth-error').classList.add('hidden');
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 const errEl = document.getElementById('auth-error');
@@ -326,7 +381,7 @@
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            user = null; notas = []; etiquetasBD = [];
+            user = null; notas = []; etiquetasBD = []; pendientes = null; vistaActual = 'inbox';
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('main-app').classList.remove('flex');
             document.getElementById('auth-screen').classList.remove('hidden');
@@ -355,6 +410,7 @@
                 if(promesasAlineacion.length > 0) await Promise.all(promesasAlineacion);
             }
             
+            await asegurarPendientes();
             renderizarSidebar();
             renderizarNotas();
             document.getElementById('loading-screen').classList.add('hidden');
@@ -362,7 +418,8 @@
 
         function cambiarVista(nombre) {
             vistaActual = nombre;
-            if(window.innerWidth < 768) toggleSidebar();
+            // Solo cerrar el sidebar si está abierto (evita abrirlo al crear una nota desde otra carpeta en móvil)
+            if(window.innerWidth < 768 && !document.getElementById('sidebar').classList.contains('-translate-x-full')) toggleSidebar();
             document.getElementById('buscador').value = '';
             renderizarSidebar();
             renderizarNotas();
@@ -371,7 +428,7 @@
         // --- GESTIÓN DE CARPETAS ---
         function renderizarSidebar() {
             const nav = document.getElementById('nav-carpetas');
-            let notasInbox = notas.filter(n => n.tablero === 'inbox').length;
+            let notasInbox = notas.filter(n => n.tablero === 'inbox' && !esPendientes(n)).length;
             
             let html = `
                 <div role="button" onclick="cambiarVista('inbox')" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNotaManual(event, 'inbox')" class="flex items-center justify-between px-3 py-2 rounded-lg transition-colors border border-transparent cursor-pointer ${vistaActual === 'inbox' ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}">
@@ -395,14 +452,14 @@
                 let colorBase = e.color.split(' ')[0].replace('bg-', 'text-').replace('/50','').replace('/40','');
 
                 html += `
-                    <div data-nombre="${e.nombre}" onclick="cambiarVista('${e.nombre}')" class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNotaManual(event, '${e.nombre}')">
+                    <div data-nombre="${esc(e.nombre)}" onclick="cambiarVista(${jsq(e.nombre)})" class="group flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${isActive ? 'nav-item-active' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}" ondragover="dragOverCarpeta(event)" ondragleave="dragLeaveCarpeta(event)" ondrop="dropNotaManual(event, ${jsq(e.nombre)})">
                         <div class="flex-1 flex items-center gap-3 py-0.5 pointer-events-none">
                             <svg class="w-4 h-4 ${colorBase}" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
-                            <span class="font-medium text-sm truncate w-28">${e.nombre}</span>
+                            <span class="font-medium text-sm truncate w-28">${esc(e.nombre)}</span>
                         </div>
                         <div class="flex items-center gap-2">
                             ${notasCount > 0 ? `<span class="text-slate-500 text-[10px] font-bold pointer-events-none ${isActive ? 'hidden group-hover:hidden' : 'group-hover:hidden'}">${notasCount}</span>` : ''}
-                            <button onclick="abrirMenuContextual(event, '${e.nombre}')" class="btn-3-dots p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100 ${isActive ? 'opacity-100' : ''}">
+                            <button onclick="abrirMenuContextual(event, ${jsq(e.nombre)})" class="btn-3-dots p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100 ${isActive ? 'opacity-100' : ''}">
                                 <svg class="w-4 h-4 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
                             </button>
                         </div>
@@ -413,7 +470,7 @@
             nav.innerHTML = html;
 
             let selectOpts = `<option value="inbox">Inbox</option>`;
-            etiquetasBD.forEach(e => selectOpts += `<option value="${e.nombre}">${e.nombre}</option>`);
+            etiquetasBD.forEach(e => selectOpts += `<option value="${esc(e.nombre)}">${esc(e.nombre)}</option>`);
             if(document.getElementById('tablero-crear')) document.getElementById('tablero-crear').innerHTML = selectOpts;
             if(document.getElementById('tablero-editar')) document.getElementById('tablero-editar').innerHTML = selectOpts;
 
@@ -475,6 +532,9 @@
         async function guardarCarpetaBD() {
             const nuevoNombre = document.getElementById('input-nombre-carpeta').value.trim();
             if (!nuevoNombre) return;
+            if (nuevoNombre.toLowerCase() === 'inbox') { alert("\"Inbox\" es un nombre reservado."); return; }
+            if (modoCarpetaActual === 'renombrar' && nuevoNombre.toLowerCase() !== (carpetaActivaMenu || '').toLowerCase()
+                && etiquetasBD.some(e => e.nombre.toLowerCase() === nuevoNombre.toLowerCase())) { alert("Ya existe una carpeta con ese nombre."); return; }
 
             if (modoCarpetaActual === 'crear') {
                 if (etiquetasBD.some(e => e.nombre.toLowerCase() === nuevoNombre.toLowerCase())) { alert("La carpeta ya existe."); return; }
@@ -554,10 +614,13 @@
             const term = document.getElementById('buscador').value.toLowerCase();
             const tempDiv = document.createElement('div');
             
-            let filtradas = notas.filter(n => n.tablero === vistaActual);
+            renderizarPendientesCard(term);
+
+            let filtradas = notas.filter(n => n.tablero === vistaActual && !esPendientes(n));
 
             if (term) {
                 filtradas = notas.filter(n => {
+                    if (esPendientes(n)) return false;
                     tempDiv.innerHTML = n.texto;
                     const txt = tempDiv.innerText.toLowerCase();
                     const tit = (n.titulo || '').toLowerCase();
@@ -584,7 +647,7 @@
                 if(nota.etiquetas && nota.etiquetas.length > 0 && vistaActual === 'inbox') {
                     let dbTag = etiquetasBD.find(e => e.nombre === nota.etiquetas[0]);
                     let claseColor = dbTag ? dbTag.color : 'bg-slate-700 text-slate-300 border-slate-600';
-                    badge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded border ${claseColor} truncate block max-w-[100px]" title="${nota.etiquetas[0]}">${nota.etiquetas[0]}</span>`;
+                    badge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded border ${claseColor} truncate block max-w-[100px]" title="${esc(nota.etiquetas[0])}">${esc(nota.etiquetas[0])}</span>`;
                 }
 
                 let btnAccion = vistaActual === 'inbox' 
@@ -602,8 +665,8 @@
                         </div>
 
                         <div class="flex-1 cursor-pointer font-semibold text-slate-200 truncate pr-2 flex items-center" onclick="abrirModalEdicion('${nota.id}')">
-                            <span class="truncate max-w-[200px] md:max-w-xs">${nota.titulo || 'Sin título'}</span>
-                            <span class="text-slate-500 font-normal ml-3 text-xs truncate hidden md:inline-block">- ${plainTextSnippet}</span>
+                            <span class="truncate max-w-[200px] md:max-w-xs">${esc(nota.titulo) || 'Sin título'}</span>
+                            <span class="text-slate-500 font-normal ml-3 text-xs truncate hidden md:inline-block">- ${esc(plainTextSnippet)}</span>
                         </div>
 
                         <div class="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-[#15181e]/80 sm:bg-transparent rounded px-1">
@@ -729,7 +792,9 @@
                     notas.unshift(data[0]); 
                     if(vistaActual !== 'inbox') cambiarVista('inbox');
                     else { renderizarSidebar(); renderizarNotas(); }
-                    cerrarModalCrear(); 
+                    cerrarModalCrear();
+                } else {
+                    alert("No se pudo guardar la nota. Revisá tu conexión e intentá de nuevo.");
                 }
             } finally {
                 isSaving = false;
@@ -815,6 +880,7 @@
             clearInterval(timerAutoGuardado); timerAutoGuardado = null;
             const index = notas.findIndex(n => n.id === idNotaEditando);
             
+            let guardadoOk = true;
             if (index > -1) {
                 const carpetaSelec = document.getElementById('tablero-editar').value;
                 notas[index].titulo = document.getElementById('titulo-editar').value.trim() || 'Nota sin título';
@@ -822,18 +888,309 @@
                 notas[index].etiquetas = carpetaSelec !== 'inbox' ? [carpetaSelec] : [];
                 if (notas[index].tablero !== 'inbox') notas[index].tablero = carpetaSelec;
 
-                await supabaseClient.from('notas').update({ 
-                    titulo: notas[index].titulo, texto: notas[index].texto, 
+                const { error } = await supabaseClient.from('notas').update({
+                    titulo: notas[index].titulo, texto: notas[index].texto,
                     etiquetas: notas[index].etiquetas, tablero: notas[index].tablero
                 }).eq('id', idNotaEditando);
 
+                if (error) guardadoOk = false;
                 renderizarSidebar(); renderizarNotas();
             }
-            
+
             isSaving = false;
             btn.disabled = false; btn.innerText = 'Guardar Cambios';
+            if (!guardadoOk) {
+                // No cerrar el modal: así no se pierde lo escrito si falló el guardado
+                alert("No se pudieron guardar los cambios. Revisá tu conexión e intentá de nuevo.");
+                timerAutoGuardado = setInterval(ejecutarAutoGuardadoSilencioso, 60000);
+                return;
+            }
             cerrarModalEdicion();
         }
+
+        // =====================================================================
+        // NOTA FIJA "PENDIENTES" (checklist por prioridad)
+        // Se guarda como una fila más de la tabla `notas` (sin cambios de esquema):
+        // el campo `texto` contiene JSON con marca "__tipo":"pendientes".
+        // Se oculta de la lista normal y se muestra fija arriba del Inbox.
+        // =====================================================================
+        let pendientes = null;           // { id, data: { __tipo, secciones: [...] } }
+        let pendSucio = false;
+        let timerGuardarPend = null;
+        let sortablesPend = [];
+        let ocultarHechas = false;
+        try { ocultarHechas = localStorage.getItem('pend_ocultar_hechas') === '1'; } catch (e) {}
+
+        const COLORES_SECCION = [
+            { punto: 'bg-red-500', texto: 'text-red-300' },
+            { punto: 'bg-orange-500', texto: 'text-orange-300' },
+            { punto: 'bg-yellow-500', texto: 'text-yellow-300' },
+            { punto: 'bg-sky-500', texto: 'text-sky-300' },
+            { punto: 'bg-slate-500', texto: 'text-slate-300' }
+        ];
+
+        function nuevoId() { return Math.random().toString(36).slice(2, 10); }
+        function esPendientes(n) { return typeof n.texto === 'string' && n.texto.startsWith('{"__tipo":"pendientes"'); }
+        function parsePend(texto) {
+            try { const d = JSON.parse(texto); if (d && d.__tipo === 'pendientes' && Array.isArray(d.secciones)) return d; } catch (e) {}
+            return null;
+        }
+        function item(texto) { return { id: nuevoId(), texto, hecho: false }; }
+
+        function pendientesPorDefecto() {
+            return { __tipo: 'pendientes', secciones: [
+                { id: nuevoId(), nombre: 'Prioritarios', items: [
+                    item('Escribir por baja alumno Belu, aviso baja mismo día de clase'),
+                    item('Cronograma'), item('Jam'), item('Pagos')
+                ]},
+                { id: nuevoId(), nombre: 'Post festi / Jam', items: [
+                    item('Hacer comparación de ingresos de gente de festi y horas gastadas para JAM')
+                ]},
+                { id: nuevoId(), nombre: 'Medio prioritarios', items: [
+                    item('Repasar canción Other Side. Subir estructura completa'),
+                    item('Activar nuevo single'),
+                    item('Avisar Guido Mery WS + reunión de sistemas (integración de base de datos, git y Vercel) (jueves)')
+                ]},
+                { id: nuevoId(), nombre: 'Bajo prioritarios', items: [
+                    item('Mejorar app notas y finanzas'),
+                    item('Armar bitácora de todo lo logrado en MDL hasta el momento')
+                ]}
+            ]};
+        }
+
+        async function asegurarPendientes() {
+            let fila = notas.filter(esPendientes).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0];
+            if (fila) {
+                const data = parsePend(fila.texto);
+                if (data) pendientes = { id: fila.id, data };
+                return;
+            }
+            const data = pendientesPorDefecto();
+            const { data: res, error } = await supabaseClient.from('notas').insert([{
+                titulo: 'Pendientes', texto: JSON.stringify(data), tablero: 'inbox', etiquetas: [], user_id: user.id
+            }]).select();
+            if (!error && res && res[0]) { notas.push(res[0]); pendientes = { id: res[0].id, data }; }
+        }
+
+        function contarPend() {
+            let total = 0, hechos = 0;
+            pendientes.data.secciones.forEach(s => s.items.forEach(i => { total++; if (i.hecho) hechos++; }));
+            return { total, hechos };
+        }
+
+        function renderizarPendientesCard(term) {
+            const el = document.getElementById('pendientes-fijo');
+            if (!pendientes || vistaActual !== 'inbox' || term) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+            const { total, hechos } = contarPend();
+            const pct = total ? Math.round(hechos * 100 / total) : 0;
+            const proximas = [];
+            pendientes.data.secciones.forEach(s => s.items.forEach(i => { if (!i.hecho && proximas.length < 3) proximas.push(i.texto); }));
+            el.innerHTML = `
+                <div onclick="abrirPendientes()" class="cursor-pointer bg-[#1a1d24] border border-blue-500/40 hover:border-blue-400 rounded-xl p-3 sm:p-4 shadow-sm transition-colors">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M16 3a1 1 0 01.707 1.707L16 5.414V10l2.707 2.707A1 1 0 0118 14.414h-5V21a1 1 0 01-2 0v-6.586H6a1 1 0 01-.707-1.707L8 10V5.414l-.707-.707A1 1 0 018 3h8z"/></svg>
+                        <span class="font-bold text-slate-100">Pendientes</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border bg-blue-900/50 text-blue-300 border-blue-700/50">FIJA</span>
+                        <span class="ml-auto text-xs font-mono text-slate-400">${hechos}/${total}</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-800 rounded-full mt-3 overflow-hidden"><div class="h-full bg-blue-500 transition-all" style="width:${pct}%"></div></div>
+                    ${proximas.length ? `<ul class="mt-3 space-y-1 text-sm text-slate-300">${proximas.map(t => `<li class="truncate flex gap-2"><span class="text-slate-600">☐</span><span class="truncate">${esc(t)}</span></li>`).join('')}</ul>` : `<p class="mt-3 text-sm text-green-400">¡Todo completado! 🎉</p>`}
+                </div>`;
+            el.classList.remove('hidden');
+        }
+
+        function estadoPend(txt) { const e = document.getElementById('pend-estado'); if (e) e.innerText = txt; }
+
+        function programarGuardadoPend() {
+            pendSucio = true; estadoPend('Guardando…');
+            clearTimeout(timerGuardarPend);
+            timerGuardarPend = setTimeout(guardarPendientes, 700);
+        }
+
+        async function guardarPendientes() {
+            if (!pendientes || !pendSucio) return;
+            clearTimeout(timerGuardarPend);
+            pendSucio = false;
+            const texto = JSON.stringify(pendientes.data);
+            const { error } = await supabaseClient.from('notas').update({ texto }).eq('id', pendientes.id);
+            if (error) { pendSucio = true; estadoPend('⚠ Error al guardar'); timerGuardarPend = setTimeout(guardarPendientes, 5000); return; }
+            const fila = notas.find(n => n.id === pendientes.id);
+            if (fila) fila.texto = texto;
+            if (!pendSucio) estadoPend('Guardado');
+        }
+
+        async function abrirPendientes() {
+            if (!pendientes) return;
+            if (!pendSucio) { // traer la versión más reciente (por si se editó desde otro dispositivo)
+                const { data, error } = await supabaseClient.from('notas').select('texto').eq('id', pendientes.id).single();
+                if (!error && data) { const d = parsePend(data.texto); if (d) pendientes.data = d; }
+            }
+            document.getElementById('pend-ocultar').checked = ocultarHechas;
+            estadoPend('');
+            document.getElementById('modal-pendientes').classList.remove('hidden');
+            renderizarPendientesModal(); // después de mostrar el modal, para medir bien la altura de los textos
+        }
+
+        async function cerrarPendientes() {
+            document.getElementById('modal-pendientes').classList.add('hidden');
+            await guardarPendientes();
+            renderizarPendientesCard(document.getElementById('buscador').value.toLowerCase());
+        }
+
+        function toggleOcultarHechas(v) {
+            ocultarHechas = v;
+            try { localStorage.setItem('pend_ocultar_hechas', v ? '1' : '0'); } catch (e) {}
+            renderizarPendientesModal();
+        }
+
+        function autoResizeTA(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+
+        function renderizarPendientesModal() {
+            const cont = document.getElementById('pend-secciones');
+            const scrollPrev = cont.scrollTop;
+            sortablesPend.forEach(s => s.destroy()); sortablesPend = [];
+            const { total, hechos } = contarPend();
+            document.getElementById('pend-progreso').innerText = `${hechos}/${total} completadas`;
+
+            cont.innerHTML = pendientes.data.secciones.map((sec, si) => {
+                const col = COLORES_SECCION[si % COLORES_SECCION.length];
+                const hs = sec.items.filter(i => i.hecho).length;
+                const visibles = sec.items.filter(i => !(ocultarHechas && i.hecho));
+                return `
+                <section data-sec="${sec.id}">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-700/60 pb-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full shrink-0 ${col.punto}"></span>
+                        <input class="pend-sec-nombre ${col.texto}" data-act="sec-nombre" value="${esc(sec.nombre)}" maxlength="60">
+                        <span class="text-xs font-mono text-slate-500 shrink-0">${hs}/${sec.items.length}</span>
+                        <button data-act="sec-del" class="text-slate-600 hover:text-red-400 p-1 shrink-0" title="Eliminar sección"><svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
+                    <div class="pend-items flex flex-col gap-1">
+                        ${visibles.map(it => `
+                        <div class="pend-item group flex items-start gap-2 py-0.5 rounded ${it.hecho ? 'hecho' : ''}" data-item="${it.id}">
+                            <span class="pend-handle cursor-grab text-slate-600 hover:text-slate-400 pt-0.5 shrink-0" title="Arrastrar"><svg class="w-4 h-5 pointer-events-none" fill="currentColor" viewBox="0 0 24 24"><path d="M9 5a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm10-14a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0zm0 7a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></span>
+                            <button data-act="toggle" class="pend-check" aria-label="Marcar como realizada"><svg class="w-3.5 h-3.5 text-white pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></button>
+                            <textarea class="pend-texto" rows="1" data-act="texto" maxlength="500">${esc(it.texto)}</textarea>
+                            <button data-act="item-del" class="pend-acciones text-slate-600 hover:text-red-400 p-0.5 shrink-0" title="Eliminar"><svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                        </div>`).join('')}
+                    </div>
+                    <div class="flex items-center gap-2 mt-2 pl-6">
+                        <span class="text-slate-600 text-lg leading-none">+</span>
+                        <input data-act="nuevo" placeholder="Agregar tarea…" maxlength="500" class="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none border-b border-transparent focus:border-slate-600 py-1">
+                    </div>
+                </section>`;
+            }).join('');
+
+            cont.querySelectorAll('textarea.pend-texto').forEach(autoResizeTA);
+            cont.querySelectorAll('.pend-items').forEach(lista => {
+                sortablesPend.push(new Sortable(lista, {
+                    group: 'pend', animation: 150, handle: '.pend-handle', delay: 100, delayOnTouchOnly: true,
+                    ghostClass: 'pend-ghost', onEnd: reconstruirPendDesdeDOM
+                }));
+            });
+            cont.scrollTop = scrollPrev;
+        }
+
+        // Reconstruye el orden/sección de las tareas a partir del DOM tras arrastrar.
+        function reconstruirPendDesdeDOM() {
+            const mapa = {};
+            pendientes.data.secciones.forEach(s => s.items.forEach(i => mapa[i.id] = i));
+            const ocultas = {}; // tareas ocultas (completadas) se quedan en su sección
+            pendientes.data.secciones.forEach(s => { ocultas[s.id] = ocultarHechas ? s.items.filter(i => i.hecho) : []; });
+            pendientes.data.secciones.forEach(s => {
+                const secEl = document.querySelector(`#pend-secciones [data-sec="${s.id}"]`);
+                if (!secEl) return;
+                const nuevos = Array.from(secEl.querySelectorAll('[data-item]')).map(e => mapa[e.dataset.item]).filter(Boolean);
+                s.items = nuevos.concat(ocultas[s.id]);
+            });
+            programarGuardadoPend();
+            renderizarPendientesModal();
+        }
+
+        function buscarItemPend(itemEl) {
+            const id = itemEl.dataset.item;
+            for (const s of pendientes.data.secciones) { const i = s.items.find(x => x.id === id); if (i) return { sec: s, it: i }; }
+            return null;
+        }
+
+        function agregarItemPend(secEl, texto) {
+            texto = texto.trim();
+            if (!texto) return;
+            const sec = pendientes.data.secciones.find(s => s.id === secEl.dataset.sec);
+            if (!sec) return;
+            sec.items.push(item(texto));
+            programarGuardadoPend();
+            renderizarPendientesModal();
+            const nuevo = document.querySelector(`#pend-secciones [data-sec="${sec.id}"] [data-act="nuevo"]`);
+            if (nuevo) nuevo.focus(); // seguir escribiendo tareas seguidas
+        }
+
+        function agregarSeccionPend() {
+            const sec = { id: nuevoId(), nombre: 'Nueva sección', items: [] };
+            pendientes.data.secciones.push(sec);
+            programarGuardadoPend();
+            renderizarPendientesModal();
+            const inp = document.querySelector(`#pend-secciones [data-sec="${sec.id}"] [data-act="sec-nombre"]`);
+            if (inp) { inp.scrollIntoView({ block: 'center' }); inp.focus(); inp.select(); }
+        }
+
+        function limpiarCompletadas() {
+            const { hechos } = contarPend();
+            if (!hechos) return;
+            if (!confirm(`¿Borrar las ${hechos} tareas completadas? No se puede deshacer.`)) return;
+            pendientes.data.secciones.forEach(s => s.items = s.items.filter(i => !i.hecho));
+            programarGuardadoPend();
+            renderizarPendientesModal();
+        }
+
+        (function initEventosPendientes() {
+            const cont = document.getElementById('pend-secciones');
+            cont.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-act]');
+                if (!btn || !pendientes) return;
+                const act = btn.dataset.act;
+                if (act === 'toggle') {
+                    const r = buscarItemPend(btn.closest('[data-item]'));
+                    if (r) { r.it.hecho = !r.it.hecho; programarGuardadoPend(); renderizarPendientesModal(); }
+                } else if (act === 'item-del') {
+                    const r = buscarItemPend(btn.closest('[data-item]'));
+                    if (r) { r.sec.items = r.sec.items.filter(i => i !== r.it); programarGuardadoPend(); renderizarPendientesModal(); }
+                } else if (act === 'sec-del') {
+                    const secEl = btn.closest('[data-sec]');
+                    const idx = pendientes.data.secciones.findIndex(s => s.id === secEl.dataset.sec);
+                    if (idx < 0) return;
+                    const s = pendientes.data.secciones[idx];
+                    if (s.items.length && !confirm(`¿Eliminar la sección "${s.nombre}" y sus ${s.items.length} tareas?`)) return;
+                    pendientes.data.secciones.splice(idx, 1);
+                    programarGuardadoPend(); renderizarPendientesModal();
+                }
+            });
+            cont.addEventListener('input', (e) => {
+                if (!pendientes) return;
+                if (e.target.dataset.act === 'texto') {
+                    autoResizeTA(e.target);
+                    const r = buscarItemPend(e.target.closest('[data-item]'));
+                    if (r) { r.it.texto = e.target.value; programarGuardadoPend(); }
+                } else if (e.target.dataset.act === 'sec-nombre') {
+                    const s = pendientes.data.secciones.find(x => x.id === e.target.closest('[data-sec]').dataset.sec);
+                    if (s) { s.nombre = e.target.value; programarGuardadoPend(); }
+                }
+            });
+            cont.addEventListener('keydown', (e) => {
+                const act = e.target.dataset && e.target.dataset.act;
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                    if (act === 'nuevo') { e.preventDefault(); agregarItemPend(e.target.closest('[data-sec]'), e.target.value); }
+                    else if (act === 'texto' || act === 'sec-nombre') { e.preventDefault(); e.target.blur(); }
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !document.getElementById('modal-pendientes').classList.contains('hidden')) cerrarPendientes();
+            });
+            // Guardar al ocultar/cerrar la pestaña
+            document.addEventListener('visibilitychange', () => { if (document.hidden) guardarPendientes(); });
+            window.addEventListener('pagehide', () => { guardarPendientes(); });
+        })();
+
+        ['email', 'password'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
 
         checkSession();
 
