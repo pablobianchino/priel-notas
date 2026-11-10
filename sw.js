@@ -1,4 +1,4 @@
-const CACHE_NAME = 'priel-notas-v3.5';
+const CACHE_NAME = 'priel-notas-v3.6';
 const urlsToCache = ['/', '/manifest.json', '/tailwind.css', '/icon-192x192.png', '/icon-512x512.png'];
 
 // Librerías externas que se cachean para que la app abra sin conexión

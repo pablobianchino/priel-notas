@@ -228,7 +228,7 @@
             <!-- Renderizado dinámico -->
         </nav>
         
-        <div id="app-version-badge" class="px-4 pb-2 text-[10px] text-center font-mono text-slate-500">v3.5</div>
+        <div id="app-version-badge" class="px-4 pb-2 text-[10px] text-center font-mono text-slate-500">v3.6</div>
         <div class="p-4 border-t border-slate-800">
             <button onclick="logout()" class="w-full text-slate-400 hover:text-slate-200 text-sm font-medium flex items-center gap-2 px-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Cerrar Sesión
@@ -269,7 +269,7 @@
     </main>
 
     <script>
-        const CURRENT_VERSION = 'v3.5';
+        const CURRENT_VERSION = 'v3.6';
         const supabaseUrl = 'https://uzqkdeijzqyruqscyivb.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWtkZWlqenF5cnVxc2N5aXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MjA1NjMsImV4cCI6MjA5MjA5NjU2M30.YbjZy5tz6TNStXl9-OMscv4Ay64A5_xrFf_pZiNBaP4';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -1228,10 +1228,10 @@
                             <button data-act="item-del" class="pend-acciones text-slate-600 hover:text-red-400 p-0.5 shrink-0" title="Eliminar"><svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                         </div>`).join('')}
                     </div>
-                    <div class="flex items-center gap-2 mt-2 pl-6">
-                        <span class="text-slate-600 text-lg leading-none">+</span>
-                        <input data-act="nuevo" placeholder="Agregar tarea…" maxlength="500" class="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none border-b border-transparent focus:border-slate-600 py-1">
-                    </div>
+                    <form data-act="nuevo-form" autocomplete="off" class="flex items-center gap-2 mt-2 pl-6">
+                        <button type="submit" aria-label="Agregar tarea" class="text-slate-400 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center shrink-0">+</button>
+                        <input data-act="nuevo" enterkeyhint="done" placeholder="Agregar tarea…" maxlength="500" class="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none border-b border-transparent focus:border-slate-600 py-1">
+                    </form>
                 </section>`;
             }).join('');
 
@@ -1332,10 +1332,19 @@
             });
             cont.addEventListener('keydown', (e) => {
                 const act = e.target.dataset && e.target.dataset.act;
+                // (Agregar tarea se resuelve con el evento "submit" del formulario, que funciona también con teclados de celular)
                 if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-                    if (act === 'nuevo') { e.preventDefault(); agregarItemPend(e.target.closest('[data-sec]'), e.target.value); }
-                    else if (act === 'texto' || act === 'sec-nombre') { e.preventDefault(); e.target.blur(); }
+                    if (act === 'texto' || act === 'sec-nombre') { e.preventDefault(); e.target.blur(); }
                 }
+            });
+            // Agregar tarea: Enter, botón "Listo" del teclado o tocar el "+"
+            cont.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!pendientes) return;
+                const form = e.target;
+                const inp = form.querySelector('[data-act="nuevo"]');
+                if (!inp.value.trim()) { inp.focus(); return; } // "+" con el campo vacío: solo enfoca para escribir
+                agregarItemPend(form.closest('[data-sec]'), inp.value);
             });
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && !document.getElementById('modal-pendientes').classList.contains('hidden')) cerrarPendientes();
